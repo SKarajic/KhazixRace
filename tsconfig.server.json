@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": ".nest",
+    "target": "es2017",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "incremental": true
+  },
+  "include": ["server/**/*.ts", "shared/**/*.ts"]
+}
