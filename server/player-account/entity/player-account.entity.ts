@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToOne } from 'typeorm';
 import { Player } from '@server/player/entity/player.entity';
 import { PlayerAccountRanked } from './player-account-ranked.entity';
-import { PlayerAccountRegion } from './player-account-region.enum';
+import { Regions } from 'twisted/dist/constants';
 
 /**
  * the league account of a player
@@ -21,7 +21,7 @@ export class PlayerAccount {
   lolId: string;
 
   @Column({ type: 'varchar' })
-  region: PlayerAccountRegion;
+  region: Regions;
 
   @ManyToOne(type => Player, player => player.accounts, { onDelete: 'CASCADE' })
   player: Player;

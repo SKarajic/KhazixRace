@@ -40,7 +40,7 @@ export class CliUserService {
       })
       await this.authService.register(user);
       Logger.log(`successfully created user with email: '${user.email}'`);
-    } catch (e) {
+    } catch (e: any) {
       Logger.error(`unable to create a user: ${e.message}`);
     }
   }

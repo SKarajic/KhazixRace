@@ -2,11 +2,11 @@ import { PlayerAccountRanked } from './entity/player-account-ranked.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
-import { SummonerV4SummonerDTO, LeagueV4LeagueEntryDTO } from 'kayn/typings/dtos';
 import { Player } from '@server/player/entity/player.entity';
 import { RiotApiService } from '@server/riot-api/riot-api.service';
 import { PlayerAccountCreateDto } from './dto/player-account-create.dto';
 import { PlayerAccount } from './entity/player-account.entity';
+import { SummonerLeagueDto, SummonerV4DTO } from 'twisted/dist/models-dto';
 
 @Injectable()
 export class PlayerAccountService {
@@ -36,9 +36,10 @@ export class PlayerAccountService {
    * @param account 
    */
   async createRiotAccount(player: Player, account: PlayerAccountCreateDto): Promise<PlayerAccount> {
-    let accountDto: SummonerV4SummonerDTO
+    let accountDto: SummonerV4DTO
     try {
-      accountDto = await this.riotApi.kayn().Summoner.by.name(account.name).region(account.region);
+      const { response } = await this.riotApi.client().Summoner.getByName(account.name, account.region);
+      accountDto = response
     } catch {
       throw new NotFoundException('riot account not found');
     }
@@ -56,11 +57,10 @@ export class PlayerAccountService {
   }
 
   private async findRankedStats(account: PlayerAccount): Promise<PlayerAccountRanked> {
-    let list: LeagueV4LeagueEntryDTO[]
+    let list: SummonerLeagueDto[]
     try {
-      list = (await this.riotApi.kayn().League.Entries
-        ['summonerID'](account.lolId).region(account.region))
-        .filter(({ queueType }) => queueType === 'RANKED_SOLO_5x5')
+      const { response } = await this.riotApi.client().League.bySummoner(account.lolId, account.region)
+      list = response.filter(({ queueType }) => queueType === 'RANKED_SOLO_5x5')
     } catch (e) {
       Logger.error(e);
       throw new BadRequestException('unable to fetch ranked data');
@@ -73,6 +73,14 @@ export class PlayerAccountService {
         wins: 0,
         losses: -1,
         leaguePoints: 0,
+        hotStreak: false,
+        veteran: false,
+        queueType: 'RANKED_SOLO_5x5',
+        summonerName: account.name,
+        leagueId: '',
+        inactive: false,
+        freshBlood: false,
+        summonerId: account.lolId
       })
     }
     const [rankedDto] = list;
@@ -103,9 +111,8 @@ export class PlayerAccountService {
       }
 
       try {
-        const { name } = await this.riotApi.kayn()
-          .Summoner.by.accountID(account.riotId).region(account.region);
-        account.name = name!
+        const { response } = await this.riotApi.client().Summoner.getByAccountID(account.riotId, account.region);
+        account.name = response.name;
       } catch {
         Logger.error(`Unable to update general data of the riot account "${account.name}" of "${player.name}"`);
       }

@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsEnum, IsEmpty } from "class-validator";
-import { ApiHideProperty } from '@nestjs/swagger';
 import { Player } from '@server/player/entity/player.entity';
-import { PlayerAccountRegion } from '../entity/player-account-region.enum';
+import { Regions } from "twisted/dist/constants/regions";
+import { ApiHideProperty } from '@nestjs/swagger';
 
 /**
  * create the riot account of a player
@@ -10,9 +10,9 @@ export class PlayerAccountCreateDto {
   @IsNotEmpty()
   name: string;
 
-  @IsEnum(PlayerAccountRegion)
+  @IsEnum(Regions)
   @IsNotEmpty()
-  region: PlayerAccountRegion;
+  region: Regions;
 
   @IsEmpty()
   @ApiHideProperty()
