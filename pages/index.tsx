@@ -245,6 +245,7 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
 
           :global(iframe) {
             max-width: 100%;
+            width: 100%;
           }
         `}</style>
         <div style={{ height: '5rem' }} />
