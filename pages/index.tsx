@@ -95,6 +95,19 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
     setLoaded(true);
   }, [])
 
+  const mapRegion = region => {
+    switch (region) {
+      case 'KR':
+        return 'www';
+      case 'EUW1':
+        return 'euw';
+      case 'OC1':
+        return 'oce';
+      default:
+        return 'na';
+    }
+  }
+
   return (
     <>
       <AppBar color="inherit">
@@ -102,7 +115,7 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
 
           <div className={classes.item}>
             <Typography>
-              <Link href="https://discord.gg/XKBqGhu" target="_blank" color="inherit">Discord</Link>
+              <Link href="https://discord.gg/khazix" target="_blank" color="inherit">Discord</Link>
             </Typography>
           </div>
 
@@ -137,7 +150,9 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
         <Container maxWidth='md'>
           <Card>
             <CardMedia>
-              <img className='banner' src='/img/banner.jpg' />
+              <a href="https://djesports.io/referral/khamains" target="_blank">
+                <img className='banner' src='/img/banner.png' />
+              </a>
             </CardMedia>
             <TableContainer>
               <Table size='small' aria-label="player table">
@@ -160,9 +175,7 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
                         {row.summ ? (
                           <a
                             target="_blank"
-                            href={`https://${
-                              row.region! === 'kr' ? 'www' : row.region
-                            }.op.gg/summoner/userName=${encodeURI(row.summ)}`}
+                            href={`https://${mapRegion(row.region)}.op.gg/summoner/userName=${encodeURI(row.summ)}`}
                           >
                             {row.name}
                           </a>
@@ -212,8 +225,8 @@ const Home: NextComponentType<NextPageContext, {}, IProps> = ({ players }) => {
           }
 
           img.banner {
-            object-fit: cover;
-            height: 150px;
+            object-fit: contain;
+            height: auto;
             width: 100%;
           }
 
