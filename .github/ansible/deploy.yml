@@ -6,7 +6,7 @@
 
   vars:
     deploy_dir: /opt/deploy/khazix-race
-    app_image: "ghcr.io/{{ github_repository }}"
+    app_image: "ghcr.io/{{ github_repository | lower }}"
     compose_file: "{{ deploy_dir }}/docker-compose.yml"
     # Shorthand for every docker compose invocation
     compose_base: >-
