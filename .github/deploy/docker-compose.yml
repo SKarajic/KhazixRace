@@ -1,5 +1,5 @@
 services:
-  db:
+  pgsql:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - pgsql_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD', 'pg_isready', '-q', '-d', '${DB_DATABASE}', '-U', '${DB_USERNAME}']
       interval: 10s
@@ -34,7 +34,7 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
-      db:
+      pgsql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -47,7 +47,7 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
-      db:
+      pgsql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -60,12 +60,12 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
     depends_on:
-      db:
+      pgsql:
         condition: service_healthy
       redis:
         condition: service_healthy
 
 volumes:
-  db_data:
+  pgsql_data:
   redis_data:
   app_storage:
