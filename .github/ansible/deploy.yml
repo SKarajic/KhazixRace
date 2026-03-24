@@ -43,7 +43,7 @@
       ansible.builtin.git:
         repo: "https://github.com/{{ github_repository }}.git"
         dest: "{{ deploy_dir }}"
-        version: main
+        version: master
         force: true
 
     - name: Log in to GHCR (only when ghcr_token is provided)
