@@ -7,7 +7,7 @@
   vars:
     deploy_dir: /opt/deploy/khazix-race
     app_image: "ghcr.io/{{ github_repository }}"
-    compose_file: "{{ deploy_dir }}/.github/deploy/docker-compose.yml"
+    compose_file: "{{ deploy_dir }}/docker-compose.yml"
     # Shorthand for every docker compose invocation
     compose_base: >-
       docker compose
@@ -39,12 +39,11 @@
           before running the first deploy.
       when: not env_stat.stat.exists
 
-    - name: Clone or update repository
-      ansible.builtin.git:
-        repo: "https://github.com/{{ github_repository }}.git"
-        dest: "{{ deploy_dir }}"
-        version: master
-        force: true
+    - name: Copy docker-compose.yml to server
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../deploy/docker-compose.yml"
+        dest: "{{ compose_file }}"
+        mode: '0644'
 
     - name: Log in to GHCR (only when ghcr_token is provided)
       ansible.builtin.command:
