@@ -1,0 +1,93 @@
+---
+- name: Deploy Khazix Race
+  hosts: all
+  become: false
+  gather_facts: false
+
+  vars:
+    deploy_dir: /opt/deploy/khazix-race
+    app_image: "ghcr.io/{{ github_repository }}"
+    compose_file: "{{ deploy_dir }}/.github/deploy/docker-compose.yml"
+    # Shorthand for every docker compose invocation
+    compose_base: >-
+      docker compose
+      --project-name khazix-race
+      --project-directory {{ deploy_dir }}
+      -f {{ compose_file }}
+    compose_env:
+      APP_IMAGE: "{{ app_image }}"
+      APP_TAG: "{{ image_tag | default('latest') }}"
+
+  tasks:
+    - name: Ensure deploy directory exists
+      ansible.builtin.file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check that .env file is present
+      ansible.builtin.stat:
+        path: "{{ deploy_dir }}/.env"
+      register: env_stat
+
+    - name: Fail if .env is missing
+      ansible.builtin.fail:
+        msg: >-
+          No .env found at {{ deploy_dir }}/.env.
+          Copy .env.example from the repo to that path and fill in your
+          production values (APP_KEY, DB_*, REDIS_*, RIOT_API_KEY, …)
+          before running the first deploy.
+      when: not env_stat.stat.exists
+
+    - name: Clone or update repository
+      ansible.builtin.git:
+        repo: "https://github.com/{{ github_repository }}.git"
+        dest: "{{ deploy_dir }}"
+        version: main
+        force: true
+
+    - name: Log in to GHCR (only when ghcr_token is provided)
+      ansible.builtin.command:
+        cmd: "docker login ghcr.io -u {{ ghcr_username }} --password-stdin"
+      args:
+        stdin: "{{ ghcr_token }}"
+      when: ghcr_token is defined and ghcr_username is defined
+      no_log: true
+
+    - name: Pull latest Docker image
+      ansible.builtin.command:
+        cmd: "docker pull {{ app_image }}:{{ image_tag | default('latest') }}"
+
+    - name: Start / update services
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} up -d --remove-orphans"
+      environment: "{{ compose_env }}"
+
+    - name: Wait for app container to accept commands
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} exec -T app php artisan about --only=environment"
+      environment: "{{ compose_env }}"
+      register: app_ready
+      retries: 12
+      delay: 5
+      until: app_ready.rc == 0
+
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} exec -T app php artisan migrate --force"
+      environment: "{{ compose_env }}"
+
+    - name: Cache config
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} exec -T app php artisan config:cache"
+      environment: "{{ compose_env }}"
+
+    - name: Cache routes
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} exec -T app php artisan route:cache"
+      environment: "{{ compose_env }}"
+
+    - name: Cache views
+      ansible.builtin.command:
+        cmd: "{{ compose_base }} exec -T app php artisan view:cache"
+      environment: "{{ compose_env }}"
