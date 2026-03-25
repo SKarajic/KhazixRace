@@ -171,7 +171,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 
 function StreamerCard({ streamer, index }: { streamer: UpcomingStreamer; index: number }) {
     const inner = (
-        <div className="flex flex-col items-center gap-2 px-6 py-5 rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm w-40 text-center hover:border-white/20 transition-colors">
+        <div className="flex flex-col items-center gap-2 px-6 py-5 rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm w-40 text-center hover:border-white/20 transition-colors h-full">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-sm">
                 {streamer.name.charAt(0).toUpperCase()}
             </div>
