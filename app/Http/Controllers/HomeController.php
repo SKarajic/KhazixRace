@@ -20,7 +20,7 @@ class HomeController extends Controller
             ->first();
 
         if ($race) {
-            return Inertia::render('welcome', [
+            return Inertia::render('home', [
                 'race' => $this->buildRaceData($race),
                 'upcoming' => null,
                 'last' => null,
@@ -29,6 +29,7 @@ class HomeController extends Controller
 
         $upcoming = Race::where('starts_at', '>', now())
             ->orderBy('starts_at')
+            ->with('streamers.primaryAccount')
             ->first();
 
         $last = Race::where('ends_at', '<', now())
@@ -36,11 +37,18 @@ class HomeController extends Controller
             ->with('streamers.primaryAccount')
             ->first();
 
-        return Inertia::render('welcome', [
+        return Inertia::render('home', [
             'race' => null,
             'upcoming' => $upcoming ? [
                 'name' => $upcoming->name,
                 'starts_at' => $upcoming->starts_at->toISOString(),
+                'streamers' => $upcoming->streamers->map(fn (Streamer $s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'platform' => $s->streaming_platform?->value,
+                    'stream_url' => $s->stream_url,
+                    'account_display_name' => $s->primaryAccount?->display_name,
+                ])->values()->all(),
             ] : null,
             'last' => $last ? $this->buildRaceData($last) : null,
         ]);

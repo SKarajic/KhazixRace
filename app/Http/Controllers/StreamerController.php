@@ -60,7 +60,7 @@ class StreamerController extends Controller
                 ->all()
             : [];
 
-        return Inertia::render('streamers/show', [
+        return Inertia::render('streamer', [
             'streamer' => [
                 'id' => $streamer->id,
                 'name' => $streamer->name,

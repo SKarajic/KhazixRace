@@ -12,7 +12,7 @@ interface Props {
     lp_history: LpPoint[];
 }
 
-export default function Show({ streamer, recent_matches, lp_history }: Props) {
+export default function Streamer({ streamer, recent_matches, lp_history }: Props) {
     const championIconUrl = recent_matches[0]?.champion_icon_url ?? null;
 
     return (
