@@ -15,7 +15,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
             className="relative w-full overflow-hidden"
-            style={{ minHeight: 460 }}
+            style={{ minHeight: 300 }}
         >
             {/* Hero image */}
             <img

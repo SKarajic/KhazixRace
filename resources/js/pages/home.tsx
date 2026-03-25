@@ -50,7 +50,8 @@ function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }
     return (
         <div>
             <RaceHeader race={race} isLast={isLast} />
-            <div className="mx-auto max-w-5xl px-4 py-10 space-y-10">
+            <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 space-y-10">
+                <SponsorBanner />
                 <Leaderboard leaderboard={race.leaderboard} matches={race.matches} />
                 <LpChart series={race.lp_series} />
                 <MatchFeed matches={race.matches} />
@@ -75,7 +76,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6 }}
                 className="relative w-full overflow-hidden"
-                style={{ minHeight: 460 }}
+                style={{ minHeight: 300 }}
             >
                 <img
                     src="/images/hero.png"
@@ -88,7 +89,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
 
                 <div
                     className="relative flex flex-col items-center justify-center text-center px-6 pt-24 pb-16"
-                    style={{ minHeight: 460 }}
+                    style={{ minHeight: 300 }}
                 >
                     <motion.p
                         initial={{ opacity: 0, y: -8 }}
@@ -135,6 +136,8 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                     </motion.p>
                 </div>
             </motion.div>
+
+            <SponsorBanner />
 
             {/* Streamers joining */}
             {upcoming.streamers.length > 0 && (
@@ -206,14 +209,69 @@ function StreamerCard({ streamer, index }: { streamer: UpcomingStreamer; index: 
     );
 }
 
+function SponsorBanner() {
+    return (
+        <div className="mx-auto max-w-5xl px-4 pb-4">
+            {/* "Presented by" row with gradient lines */}
+            <div className="flex items-center gap-4 mb-8">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-red-900/30 to-red-800/50" />
+                <p className="text-xs tracking-[0.5em] uppercase text-[#4a4a60] flex-shrink-0">
+                    Presented by
+                </p>
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent via-red-900/30 to-red-800/50" />
+            </div>
+
+            {/* Centered image with ornaments */}
+            <div className="flex justify-center">
+                <div className="relative">
+                    {/* Red ambient glow */}
+                    <div className="absolute inset-0 scale-110 rounded-lg bg-red-700/25 blur-2xl" />
+
+                    {/* Corner brackets */}
+                    <div className="absolute -top-2.5 -left-2.5 h-5 w-5 rounded-tl border-l-2 border-t-2 border-red-700/60" />
+                    <div className="absolute -top-2.5 -right-2.5 h-5 w-5 rounded-tr border-r-2 border-t-2 border-red-700/60" />
+                    <div className="absolute -bottom-2.5 -left-2.5 h-5 w-5 rounded-bl border-b-2 border-l-2 border-red-700/60" />
+                    <div className="absolute -bottom-2.5 -right-2.5 h-5 w-5 rounded-br border-b-2 border-r-2 border-red-700/60" />
+
+                    <a
+                        href="https://thunderpick.io/?r=RACE"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative block overflow-hidden rounded opacity-85 transition-opacity hover:opacity-100"
+                    >
+                        <img
+                            src="/images/thunderpick.png"
+                            alt="Thunderpick — Code: Race"
+                            className="w-80 object-cover"
+                            draggable={false}
+                        />
+                    </a>
+                </div>
+            </div>
+
+            {/* Bottom ornament */}
+            <div className="mt-8 flex items-center gap-3">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-red-900/30" />
+                <div className="h-1 w-1 rounded-full bg-red-800/60" />
+                <div className="h-1.5 w-1.5 rounded-full bg-red-700/50" />
+                <div className="h-1 w-1 rounded-full bg-red-800/60" />
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-red-900/30" />
+            </div>
+        </div>
+    );
+}
+
 function EmptyView() {
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center justify-center py-28 text-[#4a4a60]"
-        >
-            No races yet.
-        </motion.div>
+        <div>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center py-28 text-[#4a4a60]"
+            >
+                No races yet.
+            </motion.div>
+            <SponsorBanner />
+        </div>
     );
 }
