@@ -94,7 +94,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.4 }}
-                        className="text-xs tracking-[0.5em] uppercase text-[#4a4a60] mb-3"
+                        className="text-xs tracking-[0.5em] uppercase text-gray-200 text-shadow-lg text-shadow-gray-800 mb-3"
                     >
                         Coming Soon
                     </motion.p>
@@ -129,7 +129,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.6, duration: 0.4 }}
-                        className="text-sm text-[#4a4a60]"
+                        className="text-sm text-gray-300 text-shadow-lg text-shadow-gray-800"
                     >
                         {localStartTime}
                     </motion.p>
@@ -164,7 +164,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
             <span className="tabular-nums text-4xl md:text-5xl font-bold text-white tracking-tight drop-shadow-lg w-16 text-center">
                 {String(value).padStart(2, '0')}
             </span>
-            <span className="text-[10px] tracking-[0.3em] uppercase text-[#4a4a60] mt-1">{label}</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-gray-500 mt-1">{label}</span>
         </div>
     );
 }
