@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "13038c6771b177c6a50a646922fd0f97",
+    "content-hash": "af72e83065db7de2adfce1a09937387e",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -567,16 +567,16 @@
         },
         {
             "name": "communitydragon/phizz",
-            "version": "0.5.1",
+            "version": "0.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CommunityDragon/Phizz.git",
-                "reference": "fdba3943d56dc542edc5f5e24a759dd637962d62"
+                "reference": "0c57e200557e28b838cc30578a53bd7bfc432976"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CommunityDragon/Phizz/zipball/fdba3943d56dc542edc5f5e24a759dd637962d62",
-                "reference": "fdba3943d56dc542edc5f5e24a759dd637962d62",
+                "url": "https://api.github.com/repos/CommunityDragon/Phizz/zipball/0c57e200557e28b838cc30578a53bd7bfc432976",
+                "reference": "0c57e200557e28b838cc30578a53bd7bfc432976",
                 "shasum": ""
             },
             "require": {
@@ -636,7 +636,7 @@
             ],
             "support": {
                 "issues": "https://github.com/CommunityDragon/Phizz/issues",
-                "source": "https://github.com/CommunityDragon/Phizz/tree/v0.5.1"
+                "source": "https://github.com/CommunityDragon/Phizz/tree/v0.5.2"
             },
             "funding": [
                 {
@@ -644,7 +644,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-25T21:18:13+00:00"
+            "time": "2026-03-25T21:29:06+00:00"
         },
         {
             "name": "danharrin/date-format-converter",
