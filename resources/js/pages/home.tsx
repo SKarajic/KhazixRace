@@ -143,7 +143,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.7, duration: 0.4 }}
-                        className="text-xs tracking-[0.5em] uppercase text-[#4a4a60] mb-6 text-center"
+                        className="text-xs tracking-[0.5em] uppercase text-gray-500 mb-6 text-center"
                     >
                         Participants
                     </motion.p>
