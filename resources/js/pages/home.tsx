@@ -96,9 +96,13 @@ function RaceView({ race, isLast = false, matches, lpSeries, spotlight }: RaceVi
         return idx >= 0 ? idx : 0;
     }, [activeUrl, spotlight]);
 
+    const winnerChampionIconUrl = spotlight.length > 0
+        ? (spotlight[0]?.champion_stats[0]?.champion_icon_url ?? null)
+        : undefined;
+
     return (
         <div>
-            <RaceHeader race={race} isLast={isLast} />
+            <RaceHeader race={race} isLast={isLast} winnerChampionIconUrl={winnerChampionIconUrl} />
             <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 space-y-10">
                 <SponsorBanner />
 
