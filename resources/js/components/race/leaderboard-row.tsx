@@ -1,7 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { useCountup } from '@/hooks/use-countup';
 import { tierColor, tierLabel } from '@/lib/tier-utils';
 import type { LeaderboardRow as RowType, MatchFeedRow } from '@/types/race';
 import { MatchDrawer } from './match-drawer';
@@ -19,7 +18,6 @@ export const rowVariant = {
 
 export function LeaderboardRow({ row, position, streamerMatches }: Props) {
     const [expanded, setExpanded] = useState(false);
-    const lp = useCountup(row.total_lp);
     const isTop = position === 1;
 
     return (
@@ -41,7 +39,7 @@ export function LeaderboardRow({ row, position, streamerMatches }: Props) {
                     </span>
 
                     {/* Rank badge */}
-                    <TierBadge tier={row.tier} rank={row.rank} />
+                    <TierBadge tier={row.tier} rank={row.rank} points={row.points} />
 
                     {/* Name & account */}
                     <div className="flex-1 min-w-0">
@@ -52,14 +50,6 @@ export function LeaderboardRow({ row, position, streamerMatches }: Props) {
                             {row.name}
                         </Link>
                         <p className="text-xs text-[#4a4a60] truncate">{row.account_display_name}</p>
-                    </div>
-
-                    {/* Total LP */}
-                    <div className="text-right hidden sm:block flex-shrink-0">
-                        <span className="text-base font-mono font-bold text-cyan-300">
-                            {lp.toLocaleString()}
-                        </span>
-                        <p className="text-xs text-[#4a4a60]">Total LP</p>
                     </div>
 
                     {/* W / L */}
@@ -98,7 +88,7 @@ export function LeaderboardRow({ row, position, streamerMatches }: Props) {
     );
 }
 
-function TierBadge({ tier, rank }: { tier: string | null; rank: string | null }) {
+function TierBadge({ tier, rank, points }: { tier: string | null; rank: string | null; points: number | null }) {
     if (!tier) {
         return (
             <span className="px-2 py-0.5 rounded text-xs font-semibold bg-white/5 text-[#4a4a60] flex-shrink-0">
@@ -114,7 +104,7 @@ function TierBadge({ tier, rank }: { tier: string | null; rank: string | null })
             transition={{ duration: 0.2 }}
             className={`px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 ${tierColor(tier)}`}
         >
-            {tierLabel(tier)} {rank}
+            {tierLabel(tier)} {rank}{points !== null ? ` ${points} LP` : ''}
         </motion.span>
     );
 }

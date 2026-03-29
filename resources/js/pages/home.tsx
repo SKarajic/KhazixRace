@@ -1,13 +1,15 @@
 import { Head } from '@inertiajs/react';
-import moment from 'moment-timezone';
 import { motion } from 'framer-motion';
+import moment from 'moment-timezone';
+import { useMemo, useState } from 'react';
 import { Leaderboard } from '@/components/race/leaderboard';
 import { LpChart } from '@/components/race/lp-chart';
 import { MatchFeed } from '@/components/race/match-feed';
 import { RaceHeader } from '@/components/race/race-header';
+import { TwitchEmbed } from '@/components/twitch-embed';
 import { useCountdown } from '@/hooks/use-countdown';
 import PublicLayout from '@/layouts/public-layout';
-import type { RaceData } from '@/types/race';
+import type { LeaderboardRow, RaceData } from '@/types/race';
 
 interface UpcomingStreamer {
     id: number;
@@ -47,12 +49,49 @@ export default function Home({ race, upcoming, last }: Props) {
 }
 
 function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }) {
+    const streamers = useMemo(
+        () => race.leaderboard.filter((r) => !!r.stream_url),
+        [race.leaderboard],
+    );
+    const [activeStream, setActiveStream] = useState<LeaderboardRow | null>(() => {
+        if (race.stream_url) return null; // handled separately
+        if (streamers.length === 0) return null;
+        return streamers[Math.floor(Math.random() * streamers.length)];
+    });
+
+    const embedUrl = race.stream_url ?? activeStream?.stream_url ?? null;
+
     return (
         <div>
             <RaceHeader race={race} isLast={isLast} />
             <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 space-y-10">
                 <SponsorBanner />
+
                 <Leaderboard leaderboard={race.leaderboard} matches={race.matches} />
+
+                {embedUrl && (
+                    <div className="space-y-0">
+                        {/* Tabs — only shown when there is no dedicated race stream */}
+                        {!race.stream_url && streamers.length > 1 && (
+                            <div className="flex gap-1 mb-2 flex-wrap">
+                                {streamers.map((s) => (
+                                    <button
+                                        key={s.streamer_id}
+                                        onClick={() => setActiveStream(s)}
+                                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                                            activeStream?.streamer_id === s.streamer_id
+                                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                                : 'bg-white/5 text-[#4a4a60] border border-white/5 hover:text-white hover:border-white/20'
+                                        }`}
+                                    >
+                                        {s.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <TwitchEmbed url={embedUrl} />
+                    </div>
+                )}
                 <LpChart series={race.lp_series} />
                 <MatchFeed matches={race.matches} />
             </div>
