@@ -28,6 +28,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
                 alt=""
                 aria-hidden
                 draggable={false}
+                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover object-[50%_25%] select-none pointer-events-none opacity-70"
             />
 
@@ -172,7 +173,7 @@ function ParticipantChip({ row, position }: { row: LeaderboardRow; position: num
         >
             <span className="text-[10px] font-mono text-white/25 w-3 text-center">{position}</span>
             {row.champion_icon_url && (
-                <img src={row.champion_icon_url} alt="" className="w-5 h-5 rounded-sm flex-shrink-0" />
+                <img src={row.champion_icon_url} alt="" loading="lazy" className="w-5 h-5 rounded-sm flex-shrink-0" />
             )}
             <span className="text-xs font-semibold text-white/80">{row.name}</span>
         </Link>

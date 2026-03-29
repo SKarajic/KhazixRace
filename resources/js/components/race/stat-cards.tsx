@@ -142,7 +142,7 @@ function ChampionStatCard({
             <p className="text-[10px] tracking-[0.35em] uppercase text-[#4a4a60]">{label}</p>
             <div className="flex items-center gap-2.5">
                 {champion.icon_url ? (
-                    <img src={champion.icon_url} alt={champion.name} className="w-9 h-9 rounded flex-shrink-0" />
+                    <img src={champion.icon_url} alt={champion.name} loading="lazy" className="w-9 h-9 rounded flex-shrink-0" />
                 ) : (
                     <div className="w-9 h-9 rounded bg-white/5 flex-shrink-0" />
                 )}

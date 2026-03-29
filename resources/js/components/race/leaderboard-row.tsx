@@ -67,6 +67,7 @@ export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndN
                         <img
                             src={row.champion_icon_url}
                             alt=""
+                            loading="lazy"
                             className="w-8 h-8 rounded flex-shrink-0"
                         />
                     ) : (

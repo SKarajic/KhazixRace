@@ -120,7 +120,7 @@ function RaceView({ race, isLast = false, matches, lpSeries, spotlight, stats }:
                     </div>
                 )}
 
-                <Deferred data="race_stats" fallback={<StatCardsSkeleton />}>
+                <Deferred data="Ca" fallback={<StatCardsSkeleton />}>
                     {() => stats && (
                         <FadeIn>
                             <RaceStatCards stats={stats} participantCount={race.leaderboard.length} />

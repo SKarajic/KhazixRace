@@ -60,6 +60,7 @@ function MatchRow({ match }: { match: MatchFeedRow }) {
                 <img
                     src={match.champion_icon_url}
                     alt={match.champion_name}
+                    loading="lazy"
                     className="w-10 h-10 rounded flex-shrink-0"
                 />
             ) : (
@@ -122,6 +123,7 @@ function TeamIcons({ participants, isWinTeam }: { participants: MatchParticipant
                         src={p.champion_icon_url}
                         alt={p.champion_name}
                         title={p.champion_name}
+                        loading="lazy"
                         className={`w-5 h-5 rounded-sm flex-shrink-0 ${
                             p.is_tracked
                                 ? isWinTeam

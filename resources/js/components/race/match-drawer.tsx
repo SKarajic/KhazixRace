@@ -39,6 +39,7 @@ export function MatchDrawer({ matches, open }: Props) {
                                         <img
                                             src={match.champion_icon_url}
                                             alt={match.champion_name}
+                                            loading="lazy"
                                             className="w-8 h-8 rounded flex-shrink-0"
                                         />
                                     ) : (
@@ -118,6 +119,7 @@ function DrawerTeamIcons({ participants, win }: { participants: MatchParticipant
                         src={p.champion_icon_url}
                         alt={p.champion_name}
                         title={p.champion_name}
+                        loading="lazy"
                         className={`w-4 h-4 rounded-sm flex-shrink-0 ${
                             p.is_tracked
                                 ? win

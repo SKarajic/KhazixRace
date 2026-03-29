@@ -89,6 +89,7 @@ export function StreamerSpotlight({ streamers }: Props) {
                             src={active.champion_icon_url}
                             alt=""
                             aria-hidden
+                            loading="lazy"
                             className="absolute inset-0 w-full h-full object-cover scale-[3.5] blur-3xl opacity-[0.12] select-none pointer-events-none"
                         />
                     )}
@@ -120,6 +121,7 @@ export function StreamerSpotlight({ streamers }: Props) {
                                         <img
                                             src={active.champion_icon_url}
                                             alt=""
+                                            loading="lazy"
                                             className="relative w-16 h-16 rounded-full"
                                             style={{ border: `2px solid ${accent}50`, boxShadow: `0 0 24px ${accent}25` }}
                                         />
@@ -261,6 +263,7 @@ function ChampionPill({
                 <img
                     src={stat.champion_icon_url}
                     alt={stat.champion_name}
+                    loading="lazy"
                     className="w-6 h-6 rounded flex-shrink-0"
                 />
             ) : (

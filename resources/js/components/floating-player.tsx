@@ -166,6 +166,7 @@ export function FloatingPlayer({ streams }: Props) {
                                     key={channel}
                                     src={`https://player.twitch.tv/?channel=${channel}&parent=${parent}`}
                                     className="w-full h-full"
+                                    loading="lazy"
                                     allowFullScreen
                                 />
                             )}

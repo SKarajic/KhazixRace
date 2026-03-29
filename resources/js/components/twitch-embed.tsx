@@ -31,6 +31,7 @@ export function TwitchEmbed({ url }: Props) {
             <iframe
                 src={`https://player.twitch.tv/?channel=${channel}&parent=${parent}`}
                 className="w-full h-full"
+                loading="lazy"
                 allowFullScreen
             />
         </div>
