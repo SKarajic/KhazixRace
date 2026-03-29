@@ -7,9 +7,9 @@ use App\Enums\LeagueTier;
 use App\Models\LeagueMatch;
 use App\Models\Race;
 use App\Models\Streamer;
+use App\Support\CdnUrls;
 use Inertia\Inertia;
 use Inertia\Response;
-use Phizz\Facades\Phizz;
 
 class HomeController extends Controller
 {
@@ -20,11 +20,7 @@ class HomeController extends Controller
             ->first();
 
         if ($race) {
-            return Inertia::render('home', [
-                'race' => $this->buildRaceData($race),
-                'upcoming' => null,
-                'last' => null,
-            ]);
+            return $this->renderWithRace($race, isLast: false);
         }
 
         $upcoming = Race::where('starts_at', '>', now())
@@ -37,34 +33,49 @@ class HomeController extends Controller
             ->with('streamers.primaryAccount')
             ->first();
 
+        if ($last) {
+            return $this->renderWithRace($last, isLast: true, upcoming: $upcoming);
+        }
+
         return Inertia::render('home', [
             'race' => null,
-            'upcoming' => $upcoming ? [
-                'name' => $upcoming->name,
-                'starts_at' => $upcoming->starts_at->toISOString(),
-                'streamers' => $upcoming->streamers->map(fn (Streamer $s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'platform' => $s->streaming_platform?->value,
-                    'stream_url' => $s->stream_url,
-                    'account_display_name' => $s->primaryAccount?->display_name,
-                ])->values()->all(),
-            ] : null,
-            'last' => $last ? $this->buildRaceData($last) : null,
+            'upcoming' => $upcoming ? $this->buildUpcomingData($upcoming) : null,
+            'last' => null,
+        ]);
+    }
+
+    private function renderWithRace(Race $race, bool $isLast, ?Race $upcoming = null): Response
+    {
+        $streamers = $race->streamers;
+        $accountIds = $streamers->pluck('primaryAccount.id')->filter()->values()->all();
+        $leaderboard = $this->buildLeaderboard($race, $streamers, $accountIds);
+        $fastData = [
+            'id' => $race->id,
+            'name' => $race->name,
+            'starts_at' => $race->starts_at->toISOString(),
+            'ends_at' => $race->ends_at->toISOString(),
+            'stream_url' => $race->stream_url,
+            'leaderboard' => $leaderboard,
+        ];
+
+        return Inertia::render('home', [
+            'race' => $isLast ? null : $fastData,
+            'last' => $isLast ? $fastData : null,
+            'upcoming' => $upcoming ? $this->buildUpcomingData($upcoming) : null,
+            'race_matches' => Inertia::defer(fn () => $this->buildMatchFeed($race, $accountIds)),
+            'race_lp_series' => Inertia::defer(fn () => $this->buildLpSeries($race, $streamers)),
+            'race_spotlight' => Inertia::defer(fn () => $this->buildStreamersSpotlight($race, $streamers, $leaderboard)),
+            'race_stats' => Inertia::defer(fn () => $this->buildRaceStatsDeferred($race, $accountIds, $leaderboard)),
         ]);
     }
 
     /**
-     * Build the full race data array for the frontend.
-     *
-     * @return array<string, mixed>
+     * @param  \Illuminate\Support\Collection<int, Streamer>  $streamers
+     * @param  array<int, int>  $accountIds
+     * @return array<int, array<string, mixed>>
      */
-    private function buildRaceData(Race $race): array
+    private function buildLeaderboard(Race $race, $streamers, array $accountIds): array
     {
-        $streamers = $race->streamers;
-        $accountIds = $streamers->pluck('primaryAccount.id')->filter()->values();
-
-        // Race-period W/L stats keyed by league_account_id
         $stats = LeagueMatch::whereIn('league_account_id', $accountIds)
             ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
             ->whereNotNull('is_win')
@@ -73,7 +84,6 @@ class HomeController extends Controller
             ->get()
             ->keyBy('league_account_id');
 
-        // Latest ranked match per account, keyed by league_account_id
         $latestMatches = LeagueMatch::whereIn('league_account_id', $accountIds)
             ->whereNotNull('tier')
             ->orderBy('game_start_at', 'desc')
@@ -81,7 +91,7 @@ class HomeController extends Controller
             ->groupBy('league_account_id')
             ->map(fn ($matches) => $matches->first());
 
-        $leaderboard = $streamers
+        return $streamers
             ->map(function (Streamer $streamer) use ($stats, $latestMatches) {
                 $account = $streamer->primaryAccount;
                 $match = $account ? $latestMatches->get($account->id) : null;
@@ -97,9 +107,6 @@ class HomeController extends Controller
 
                 $participant = $match?->participant($account?->puuid);
                 $championId = $participant?->champion_id ?? 0;
-                $championIconUrl = $championId > 0
-                    ? Phizz::cdragon()->lol->championSummary($championId)->squarePortraitUrl()
-                    : null;
 
                 return [
                     'streamer_id' => $streamer->id,
@@ -114,14 +121,41 @@ class HomeController extends Controller
                     'wins' => $wins,
                     'losses' => $losses,
                     'win_rate' => $total > 0 ? round($wins / $total * 100) : 0,
-                    'champion_icon_url' => $championIconUrl,
+                    'champion_icon_url' => CdnUrls::championIcon($championId),
                 ];
             })
             ->sortByDesc('total_lp')
             ->values()
             ->all();
+    }
 
-        // LP series per streamer
+    /**
+     * @param  array<int, int>  $accountIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildMatchFeed(Race $race, array $accountIds): array
+    {
+        return LeagueMatch::whereIn('league_account_id', $accountIds)
+            ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
+            ->with('leagueAccount.streamer')
+            ->latest('game_start_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (LeagueMatch $match) => $this->buildMatchRow(
+                $match,
+                $match->leagueAccount?->puuid,
+                $match->leagueAccount?->streamer?->name ?? '—',
+                $match->leagueAccount?->streamer?->id,
+            ))
+            ->all();
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Streamer>  $streamers
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildLpSeries(Race $race, $streamers): array
+    {
         $lpSeries = [];
         foreach ($streamers as $streamer) {
             $account = $streamer->primaryAccount;
@@ -148,33 +182,19 @@ class HomeController extends Controller
             ];
         }
 
-        // Match feed — last 20 across all race participants
-        $matchFeed = LeagueMatch::whereIn('league_account_id', $accountIds)
-            ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
-            ->with('leagueAccount.streamer')
-            ->latest('game_start_at')
-            ->limit(20)
-            ->get()
-            ->map(fn (LeagueMatch $match) => $this->buildMatchRow(
-                $match,
-                $match->leagueAccount?->puuid,
-                $match->leagueAccount?->streamer?->name ?? '—',
-                $match->leagueAccount?->streamer?->id,
-            ))
-            ->all();
+        return $lpSeries;
+    }
 
-        return [
-            'id' => $race->id,
-            'name' => $race->name,
-            'starts_at' => $race->starts_at->toISOString(),
-            'ends_at' => $race->ends_at->toISOString(),
-            'stream_url' => $race->stream_url,
-            'leaderboard' => $leaderboard,
-            'lp_series' => $lpSeries,
-            'matches' => $matchFeed,
-            'stats' => $this->buildRaceStats($matchFeed, $leaderboard),
-            'streamers_spotlight' => $this->buildStreamersSpotlight($race, $streamers, $leaderboard),
-        ];
+    /**
+     * @param  array<int, int>  $accountIds
+     * @param  array<int, array<string, mixed>>  $leaderboard
+     * @return array<string, mixed>
+     */
+    private function buildRaceStatsDeferred(Race $race, array $accountIds, array $leaderboard): array
+    {
+        $matchFeed = $this->buildMatchFeed($race, $accountIds);
+
+        return $this->buildRaceStats($matchFeed, $leaderboard);
     }
 
     /**
@@ -195,17 +215,12 @@ class HomeController extends Controller
         $damage = $participant?->total_damage_dealt_to_champions ?? null;
         $duration = $match->data?->info?->game_duration ?? null;
 
-        $iconUrl = null;
-        if ($championId > 0) {
-            $iconUrl = Phizz::cdragon()->lol->championSummary($championId)->squarePortraitUrl();
-        }
-
         return [
             'id' => $match->id,
             'streamer_id' => $streamerId,
             'streamer_name' => $streamerName,
             'champion_name' => $participant?->champion_name ?? '—',
-            'champion_icon_url' => $iconUrl,
+            'champion_icon_url' => CdnUrls::championIcon($championId),
             'is_win' => $match->is_win,
             'kda' => $kda,
             'kills' => $participant?->kills ?? null,
@@ -231,9 +246,7 @@ class HomeController extends Controller
 
         return collect($participants)
             ->map(fn ($p) => [
-                'champion_icon_url' => $p->champion_id > 0
-                    ? Phizz::cdragon()->lol->championSummary($p->champion_id)->squarePortraitUrl()
-                    : null,
+                'champion_icon_url' => CdnUrls::championIcon($p->champion_id ?? 0),
                 'champion_name' => $p->champion_name ?? '—',
                 'team_id' => $p->team_id,
                 'is_tracked' => $puuid !== null && $p->puuid === $puuid,
@@ -243,7 +256,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Compute aggregate race statistics from the already-built match feed and leaderboard.
+     * Compute aggregate race statistics from the match feed and leaderboard.
      *
      * @param  array<int, array<string, mixed>>  $matchFeed
      * @param  array<int, array<string, mixed>>  $leaderboard
@@ -452,6 +465,24 @@ class HomeController extends Controller
             ->take(3)
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildUpcomingData(Race $race): array
+    {
+        return [
+            'name' => $race->name,
+            'starts_at' => $race->starts_at->toISOString(),
+            'streamers' => $race->streamers->map(fn (Streamer $s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'platform' => $s->streaming_platform?->value,
+                'stream_url' => $s->stream_url,
+                'account_display_name' => $s->primaryAccount?->display_name,
+            ])->values()->all(),
+        ];
     }
 
     /**

@@ -111,8 +111,4 @@ export type RaceData = {
     ends_at: string;
     stream_url: string | null;
     leaderboard: LeaderboardRow[];
-    lp_series: LpSeries[];
-    matches: MatchFeedRow[];
-    stats: RaceStats | null;
-    streamers_spotlight: StreamerSpotlightEntry[];
 };

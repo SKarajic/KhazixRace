@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Deferred, Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import moment from 'moment-timezone';
 import { useMemo } from 'react';
@@ -12,7 +12,7 @@ import { TwitchEmbed } from '@/components/twitch-embed';
 import { useStream } from '@/contexts/stream-context';
 import { useCountdown } from '@/hooks/use-countdown';
 import PublicLayout from '@/layouts/public-layout';
-import type { RaceData } from '@/types/race';
+import type { LpSeries, MatchFeedRow, RaceData, RaceStats, StreamerSpotlightEntry } from '@/types/race';
 
 interface UpcomingStreamer {
     id: number;
@@ -32,18 +32,35 @@ interface Props {
     race: RaceData | null;
     upcoming: UpcomingRace | null;
     last: RaceData | null;
+    race_matches?: MatchFeedRow[];
+    race_lp_series?: LpSeries[];
+    race_spotlight?: StreamerSpotlightEntry[];
+    race_stats?: RaceStats | null;
 }
 
-export default function Home({ race, upcoming, last }: Props) {
+export default function Home({ race, upcoming, last, race_matches = [], race_lp_series = [], race_spotlight = [], race_stats = null }: Props) {
     return (
         <PublicLayout>
             <Head title="" />
             {race ? (
-                <RaceView race={race} />
+                <RaceView
+                    race={race}
+                    matches={race_matches}
+                    lpSeries={race_lp_series}
+                    spotlight={race_spotlight}
+                    stats={race_stats}
+                />
             ) : upcoming ? (
                 <UpcomingView upcoming={upcoming} />
             ) : last ? (
-                <RaceView race={last} isLast />
+                <RaceView
+                    race={last}
+                    isLast
+                    matches={race_matches}
+                    lpSeries={race_lp_series}
+                    spotlight={race_spotlight}
+                    stats={race_stats}
+                />
             ) : (
                 <EmptyView />
             )}
@@ -51,7 +68,16 @@ export default function Home({ race, upcoming, last }: Props) {
     );
 }
 
-function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }) {
+interface RaceViewProps {
+    race: RaceData;
+    isLast?: boolean;
+    matches: MatchFeedRow[];
+    lpSeries: LpSeries[];
+    spotlight: StreamerSpotlightEntry[];
+    stats: RaceStats | null;
+}
+
+function RaceView({ race, isLast = false, matches, lpSeries, spotlight, stats }: RaceViewProps) {
     const { activeUrl, setActiveUrl } = useStream();
     const streamers = useMemo(
         () => race.leaderboard.filter((r) => !!r.stream_url),
@@ -67,7 +93,7 @@ function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }
             <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 space-y-10">
                 <SponsorBanner />
 
-                <Leaderboard leaderboard={race.leaderboard} matches={race.matches} />
+                <Leaderboard leaderboard={race.leaderboard} matches={matches} />
 
                 {embedUrl && (
                     <div className="space-y-0">
@@ -93,17 +119,38 @@ function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }
                     </div>
                 )}
 
-                {race.stats && (
-                    <RaceStatCards stats={race.stats} participantCount={race.leaderboard.length} />
-                )}
+                <Deferred data="race_stats" fallback={null}>
+                    {() => stats && <RaceStatCards stats={stats} participantCount={race.leaderboard.length} />}
+                </Deferred>
 
-                {race.streamers_spotlight.length > 0 && (
-                    <StreamerSpotlight streamers={race.streamers_spotlight} />
-                )}
+                <Deferred data="race_spotlight" fallback={null}>
+                    {() => spotlight.length > 0 && <StreamerSpotlight streamers={spotlight} />}
+                </Deferred>
 
-                <LpChart series={race.lp_series} />
-                <MatchFeed matches={race.matches} />
+                <Deferred data="race_lp_series" fallback={<ChartSkeleton />}>
+                    {() => <LpChart series={lpSeries} />}
+                </Deferred>
+
+                <Deferred data="race_matches" fallback={<MatchFeedSkeleton />}>
+                    {() => <MatchFeed matches={matches} />}
+                </Deferred>
             </div>
+        </div>
+    );
+}
+
+function ChartSkeleton() {
+    return (
+        <div className="h-48 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+    );
+}
+
+function MatchFeedSkeleton() {
+    return (
+        <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-14 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+            ))}
         </div>
     );
 }
