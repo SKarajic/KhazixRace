@@ -8,6 +8,7 @@ use App\Models\LeagueMatch;
 use App\Models\Race;
 use App\Models\Streamer;
 use App\Support\CdnUrls;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -86,12 +87,15 @@ class HomeController extends Controller
             ->get()
             ->keyBy('league_account_id');
 
-        $latestMatches = LeagueMatch::whereIn('league_account_id', $accountIds)
+        // DISTINCT ON (PostgreSQL): returns the single latest ranked match per account
+        // without loading every historical match into PHP memory.
+        $latestMatches = LeagueMatch::select(DB::raw('DISTINCT ON (league_account_id) league_matches.*'))
+            ->whereIn('league_account_id', $accountIds)
             ->whereNotNull('tier')
+            ->orderBy('league_account_id')
             ->orderBy('game_start_at', 'desc')
             ->get()
-            ->groupBy('league_account_id')
-            ->map(fn ($matches) => $matches->first());
+            ->keyBy('league_account_id');
 
         return $streamers
             ->map(function (Streamer $streamer) use ($stats, $latestMatches) {
@@ -158,25 +162,33 @@ class HomeController extends Controller
      */
     private function buildLpSeries(Race $race, $streamers): array
     {
+        // Build a map of account_id → streamer name, skipping streamer without an account.
+        $accountIdToName = $streamers
+            ->filter(fn (Streamer $s) => $s->primaryAccount !== null)
+            ->mapWithKeys(fn (Streamer $s) => [$s->primaryAccount->id => $s->name]);
+
+        if ($accountIdToName->isEmpty()) {
+            return [];
+        }
+
+        // Single query for all streamers — select only the columns needed, skip the heavy `data` blob.
+        $allMatches = LeagueMatch::whereIn('league_account_id', $accountIdToName->keys())
+            ->whereNotNull('tier')
+            ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
+            ->orderBy('game_start_at')
+            ->select(['league_account_id', 'tier', 'rank', 'points', 'game_start_at', 'game_end_at'])
+            ->get()
+            ->groupBy('league_account_id');
+
         $lpSeries = [];
-        foreach ($streamers as $streamer) {
-            $account = $streamer->primaryAccount;
-            if (! $account) {
-                continue;
-            }
-
-            $matches = LeagueMatch::where('league_account_id', $account->id)
-                ->whereNotNull('tier')
-                ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
-                ->orderBy('game_start_at')
-                ->get();
-
-            if ($matches->isEmpty()) {
+        foreach ($accountIdToName as $accountId => $name) {
+            $matches = $allMatches->get($accountId);
+            if (! $matches || $matches->isEmpty()) {
                 continue;
             }
 
             $lpSeries[] = [
-                'name' => $streamer->name,
+                'name' => $name,
                 'data' => $matches->map(fn (LeagueMatch $m) => [
                     't' => ($m->game_end_at ?? $m->game_start_at)->toISOString(),
                     'lp' => $this->computeTotalLp($m->tier, $m->rank, $m->points),
@@ -335,20 +347,34 @@ class HomeController extends Controller
      */
     private function buildStreamersSpotlight(Race $race, $streamers, array $leaderboard): array
     {
+        // Map account_id → Streamer, skipping streamers without a linked account.
+        $accountToStreamer = $streamers
+            ->filter(fn (Streamer $s) => $s->primaryAccount !== null)
+            ->mapWithKeys(fn (Streamer $s) => [$s->primaryAccount->id => $s]);
+
         $lbByStreamerId = collect($leaderboard)->keyBy('streamer_id');
         $result = [];
 
-        foreach ($streamers as $streamer) {
-            $account = $streamer->primaryAccount;
-            if (! $account) {
-                continue;
-            }
+        if ($accountToStreamer->isEmpty()) {
+            return $result;
+        }
 
-            $matches = LeagueMatch::where('league_account_id', $account->id)
-                ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
-                ->latest('game_start_at')
-                ->limit(30)
-                ->get()
+        // Single query: window function ranks each account's matches newest-first,
+        // then we keep only the top 30 per account — no N+1 loop needed.
+        $inner = DB::table('league_matches')
+            ->selectRaw('*, ROW_NUMBER() OVER (PARTITION BY league_account_id ORDER BY game_start_at DESC) AS rn')
+            ->whereIn('league_account_id', $accountToStreamer->keys())
+            ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at]);
+
+        $allMatchRows = LeagueMatch::fromSub($inner, 'ranked')
+            ->where('rn', '<=', 30)
+            ->get()
+            ->groupBy('league_account_id');
+
+        foreach ($accountToStreamer as $accountId => $streamer) {
+            $account = $streamer->primaryAccount;
+
+            $matches = ($allMatchRows->get($accountId) ?? collect())
                 ->map(fn (LeagueMatch $m) => $this->buildMatchRow($m, $account->puuid, $streamer->name, $streamer->id))
                 ->all();
 
