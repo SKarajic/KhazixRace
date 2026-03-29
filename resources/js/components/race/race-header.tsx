@@ -52,9 +52,9 @@ export function RaceHeader({ race, isLast = false }: Props) {
                 style={{ minHeight: 'min(88svh, 700px)', paddingTop: '5rem', paddingBottom: '5.5rem' }}
             >
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                     className="max-w-xl"
                 >
                     {/* Eyebrow */}

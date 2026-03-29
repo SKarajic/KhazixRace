@@ -1,5 +1,6 @@
 import { Deferred, Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
+import type { PropsWithChildren } from 'react';
 import moment from 'moment-timezone';
 import { useMemo } from 'react';
 import { Leaderboard } from '@/components/race/leaderboard';
@@ -119,38 +120,94 @@ function RaceView({ race, isLast = false, matches, lpSeries, spotlight, stats }:
                     </div>
                 )}
 
-                <Deferred data="race_stats" fallback={null}>
-                    {() => stats && <RaceStatCards stats={stats} participantCount={race.leaderboard.length} />}
+                <Deferred data="race_stats" fallback={<StatCardsSkeleton />}>
+                    {() => stats && (
+                        <FadeIn>
+                            <RaceStatCards stats={stats} participantCount={race.leaderboard.length} />
+                        </FadeIn>
+                    )}
                 </Deferred>
 
-                <Deferred data="race_spotlight" fallback={null}>
-                    {() => spotlight.length > 0 && <StreamerSpotlight streamers={spotlight} />}
+                <Deferred data="race_spotlight" fallback={<SpotlightSkeleton />}>
+                    {() => spotlight.length > 0 && (
+                        <FadeIn>
+                            <StreamerSpotlight streamers={spotlight} />
+                        </FadeIn>
+                    )}
                 </Deferred>
 
                 <Deferred data="race_lp_series" fallback={<ChartSkeleton />}>
-                    {() => <LpChart series={lpSeries} />}
+                    {() => (
+                        <FadeIn>
+                            <LpChart series={lpSeries} />
+                        </FadeIn>
+                    )}
                 </Deferred>
 
                 <Deferred data="race_matches" fallback={<MatchFeedSkeleton />}>
-                    {() => <MatchFeed matches={matches} />}
+                    {() => (
+                        <FadeIn>
+                            <MatchFeed matches={matches} />
+                        </FadeIn>
+                    )}
                 </Deferred>
             </div>
         </div>
     );
 }
 
+function FadeIn({ children }: PropsWithChildren) {
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+            {children}
+        </motion.div>
+    );
+}
+
+function StatCardsSkeleton() {
+    return (
+        <div>
+            <div className="h-3 w-24 rounded bg-white/[0.04] mb-4 animate-pulse" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="h-[76px] rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function SpotlightSkeleton() {
+    return (
+        <div className="rounded-xl border border-white/5 overflow-hidden">
+            <div className="flex gap-1.5 px-4 pt-4 pb-3 border-b border-white/5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-7 w-20 rounded-md bg-white/[0.04] animate-pulse" />
+                ))}
+            </div>
+            <div className="h-56 bg-white/[0.02] animate-pulse" />
+        </div>
+    );
+}
+
 function ChartSkeleton() {
     return (
-        <div className="h-48 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+        <div>
+            <div className="h-3 w-20 rounded bg-white/[0.04] mb-4 animate-pulse" />
+            <div className="h-48 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+        </div>
     );
 }
 
 function MatchFeedSkeleton() {
     return (
-        <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-14 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
-            ))}
+        <div>
+            <div className="h-3 w-24 rounded bg-white/[0.04] mb-4 animate-pulse" />
+            <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-14 rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
+                ))}
+            </div>
         </div>
     );
 }
