@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useCountdown } from '@/hooks/use-countdown';
 import type { RaceData } from '@/types/race';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 
 export function RaceHeader({ race, isLast = false }: Props) {
     const isActive = !isLast && new Date(race.ends_at) > new Date();
+    const countdown = useCountdown(race.ends_at);
 
     return (
         <motion.div
@@ -57,21 +59,21 @@ export function RaceHeader({ race, isLast = false }: Props) {
                     <StatusBadge active={isActive} />
                 </motion.div>
 
-                {!isLast && isActive && (
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                {!isLast && isActive && !countdown.expired && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55, duration: 0.4 }}
-                        className="mt-3 text-sm text-[#4a4a60]"
+                        className="mt-4 flex flex-col items-center gap-2"
                     >
-                        Ends{' '}
-                        {new Date(race.ends_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        })}
-                    </motion.p>
+                        <p className="text-xs tracking-[0.4em] uppercase text-[#4a4a60]">Ends in</p>
+                        <div className="flex items-end gap-2.5">
+                            {countdown.days > 0 && <CountdownUnit value={countdown.days} label="Days" />}
+                            <CountdownUnit value={countdown.hours} label="Hrs" />
+                            <CountdownUnit value={countdown.minutes} label="Min" />
+                            <CountdownUnit value={countdown.seconds} label="Sec" />
+                        </div>
+                    </motion.div>
                 )}
 
                 {race.stream_url && (
@@ -89,6 +91,17 @@ export function RaceHeader({ race, isLast = false }: Props) {
                 )}
             </div>
         </motion.div>
+    );
+}
+
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+    return (
+        <div className="flex flex-col items-center">
+            <span className="tabular-nums text-2xl font-bold text-white tracking-tight w-10 text-center">
+                {String(value).padStart(2, '0')}
+            </span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-[#4a4a60] mt-0.5">{label}</span>
+        </div>
     );
 }
 
