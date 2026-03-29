@@ -1,7 +1,7 @@
 import { Deferred, Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import type { PropsWithChildren, ReactNode } from 'react';
 import moment from 'moment-timezone';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Leaderboard } from '@/components/race/leaderboard';
 import { LpChart } from '@/components/race/lp-chart';
@@ -11,8 +11,8 @@ import { StreamerSpotlight } from '@/components/race/streamer-spotlight';
 import { TwitchEmbed } from '@/components/twitch-embed';
 import { useStream } from '@/contexts/stream-context';
 import { useCountdown } from '@/hooks/use-countdown';
-import { tierLabel } from '@/lib/tier-utils';
 import PublicLayout from '@/layouts/public-layout';
+import { tierLabel } from '@/lib/tier-utils';
 import type { LpSeries, MatchFeedRow, RaceData, StreamerSpotlightEntry } from '@/types/race';
 
 interface UpcomingStreamer {
@@ -217,13 +217,7 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
     return (
         <div>
             {/* Hero */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6 }}
-                className="relative w-full overflow-hidden"
-                style={{ minHeight: 300 }}
-            >
+            <div className="relative w-full overflow-hidden" style={{ minHeight: 300 }}>
                 <img
                     src="/images/hero.png"
                     alt="Kha'Zix"
@@ -237,51 +231,31 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                     className="relative flex flex-col items-center justify-center text-center px-6 pt-24 pb-16"
                     style={{ minHeight: 300 }}
                 >
-                    <motion.p
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.4 }}
-                        className="text-xs tracking-[0.5em] uppercase text-gray-200 text-shadow-lg text-shadow-gray-800 mb-3"
-                    >
+                    <p className="text-xs tracking-[0.5em] uppercase text-gray-200 text-shadow-lg text-shadow-gray-800 mb-3">
                         Coming Soon
-                    </motion.p>
+                    </p>
 
-                    <motion.h1
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="text-4xl md:text-5xl font-bold tracking-[0.25em] uppercase text-white mb-8 drop-shadow-lg"
-                    >
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-[0.25em] uppercase text-white mb-8 drop-shadow-lg">
                         {upcoming.name}
-                    </motion.h1>
+                    </h1>
 
                     {/* Countdown */}
                     {!countdown.expired && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45, duration: 0.4 }}
-                            className="flex items-end gap-3 mb-6"
-                        >
+                        <div className="flex items-end gap-3 mb-6">
                             {countdown.days > 0 && (
                                 <CountdownUnit value={countdown.days} label="Days" />
                             )}
                             <CountdownUnit value={countdown.hours} label="Hrs" />
                             <CountdownUnit value={countdown.minutes} label="Min" />
                             <CountdownUnit value={countdown.seconds} label="Sec" />
-                        </motion.div>
+                        </div>
                     )}
 
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6, duration: 0.4 }}
-                        className="text-sm text-gray-300 text-shadow-lg text-shadow-gray-800"
-                    >
+                    <p className="text-sm text-gray-300 text-shadow-lg text-shadow-gray-800">
                         {localStartTime}
-                    </motion.p>
+                    </p>
                 </div>
-            </motion.div>
+            </div>
 
             <SponsorBanner />
 
@@ -318,7 +292,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
     );
 }
 
-function StreamerCard({ streamer, index }: { streamer: UpcomingStreamer; index: number }) {
+function StreamerCard({ streamer }: { streamer: UpcomingStreamer; index: number }) {
     const inner = (
         <div className="flex flex-col items-center gap-2 px-6 py-5 rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm w-40 text-center hover:border-white/20 transition-colors h-full">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-sm">
@@ -338,21 +312,11 @@ function StreamerCard({ streamer, index }: { streamer: UpcomingStreamer; index: 
         </div>
     );
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.75 + index * 0.08, duration: 0.35 }}
-        >
-            {streamer.stream_url ? (
-                <a href={streamer.stream_url} target="_blank" rel="noopener noreferrer">
-                    {inner}
-                </a>
-            ) : (
-                inner
-            )}
-        </motion.div>
-    );
+    return streamer.stream_url ? (
+        <a href={streamer.stream_url} target="_blank" rel="noopener noreferrer">
+            {inner}
+        </a>
+    ) : inner;
 }
 
 function SponsorBanner() {

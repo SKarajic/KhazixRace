@@ -1,5 +1,4 @@
 import { Link } from '@inertiajs/react';
-import { motion } from 'framer-motion';
 import { useCountdown } from '@/hooks/use-countdown';
 import { tierLabel } from '@/lib/tier-utils';
 import type { LeaderboardRow, RaceData } from '@/types/race';
@@ -22,13 +21,12 @@ export function RaceHeader({ race, isLast = false }: Props) {
             {/* ── Background ── */}
             <div className="absolute inset-0 bg-[#05050a]" />
 
-            {/* Hero image — high opacity, let it dominate */}
+            {/* Hero image — no entrance animation (SSR renders at opacity 0 otherwise) */}
             <img
                 src="/images/hero.png"
                 alt=""
                 aria-hidden
                 draggable={false}
-                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover object-[50%_25%] select-none pointer-events-none opacity-70"
             />
 
@@ -52,12 +50,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
                 className="relative flex flex-col justify-center max-w-5xl mx-auto px-6"
                 style={{ minHeight: 'min(88svh, 700px)', paddingTop: '5rem', paddingBottom: '5.5rem' }}
             >
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                    className="max-w-xl"
-                >
+                <div className="max-w-xl">
                     {/* Eyebrow */}
                     <div className="flex items-center gap-3 mb-5">
                         <div className="h-px w-6 bg-white/30" />
@@ -98,12 +91,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
 
                     {/* Countdown */}
                     {isActive && !countdown.expired && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2, duration: 0.5 }}
-                            className="mb-7"
-                        >
+                        <div className="mb-7">
                             <p className="text-[10px] tracking-[0.5em] uppercase text-white/30 mb-3">
                                 Ends in
                             </p>
@@ -120,35 +108,27 @@ export function RaceHeader({ race, isLast = false }: Props) {
                                 <Colon />
                                 <CountdownBlock value={countdown.seconds} label="Sec" />
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Stream link */}
                     {race.stream_url && (
-                        <motion.a
+                        <a
                             href={race.stream_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.35, duration: 0.4 }}
                             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-colors backdrop-blur-sm"
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                             Watch Stream
-                        </motion.a>
+                        </a>
                     )}
-                </motion.div>
+                </div>
             </div>
 
             {/* ── Participant strip ── */}
             {race.leaderboard.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="absolute bottom-0 left-0 right-0"
-                >
+                <div className="absolute bottom-0 left-0 right-0">
                     <div className="max-w-5xl mx-auto px-6 pb-4">
                         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
                             <span className="text-[10px] tracking-[0.4em] uppercase text-white/25 flex-shrink-0 mr-2">
@@ -159,7 +139,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
                             ))}
                         </div>
                     </div>
-                </motion.div>
+                </div>
             )}
         </div>
     );
@@ -215,3 +195,4 @@ function StatusBadge({ active }: { active: boolean }) {
         </span>
     );
 }
+
