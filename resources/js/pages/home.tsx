@@ -231,29 +231,49 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
                     className="relative flex flex-col items-center justify-center text-center px-6 pt-24 pb-16"
                     style={{ minHeight: 300 }}
                 >
-                    <p className="text-xs tracking-[0.5em] uppercase text-gray-200 text-shadow-lg text-shadow-gray-800 mb-3">
+                    <motion.p
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.4 }}
+                        className="text-xs tracking-[0.5em] uppercase text-gray-200 text-shadow-lg text-shadow-gray-800 mb-3"
+                    >
                         Coming Soon
-                    </p>
+                    </motion.p>
 
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-[0.25em] uppercase text-white mb-8 drop-shadow-lg">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="text-4xl md:text-5xl font-bold tracking-[0.25em] uppercase text-white mb-8 drop-shadow-lg"
+                    >
                         {upcoming.name}
-                    </h1>
+                    </motion.h1>
 
                     {/* Countdown */}
                     {!countdown.expired && (
-                        <div className="flex items-end gap-3 mb-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45, duration: 0.4 }}
+                            className="flex items-end gap-3 mb-6"
+                        >
                             {countdown.days > 0 && (
                                 <CountdownUnit value={countdown.days} label="Days" />
                             )}
                             <CountdownUnit value={countdown.hours} label="Hrs" />
                             <CountdownUnit value={countdown.minutes} label="Min" />
                             <CountdownUnit value={countdown.seconds} label="Sec" />
-                        </div>
+                        </motion.div>
                     )}
 
-                    <p className="text-sm text-gray-300 text-shadow-lg text-shadow-gray-800">
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6, duration: 0.4 }}
+                        className="text-sm text-gray-300 text-shadow-lg text-shadow-gray-800"
+                    >
                         {localStartTime}
-                    </p>
+                    </motion.p>
                 </div>
             </div>
 
@@ -262,14 +282,9 @@ function UpcomingView({ upcoming }: { upcoming: UpcomingRace }) {
             {/* Streamers joining */}
             {upcoming.streamers.length > 0 && (
                 <div className="mx-auto max-w-5xl px-4 py-10">
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.7, duration: 0.4 }}
-                        className="text-xs tracking-[0.5em] uppercase text-gray-500 mb-6 text-center"
-                    >
+                    <p className="text-xs tracking-[0.5em] uppercase text-gray-500 mb-6 text-center">
                         Participants
-                    </motion.p>
+                    </p>
                     <div className="flex flex-wrap justify-center gap-4">
                         {upcoming.streamers.map((streamer, i) => (
                             <StreamerCard key={streamer.id} streamer={streamer} index={i} />
@@ -292,7 +307,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
     );
 }
 
-function StreamerCard({ streamer }: { streamer: UpcomingStreamer; index: number }) {
+function StreamerCard({ streamer, index }: { streamer: UpcomingStreamer; index: number }) {
     const inner = (
         <div className="flex flex-col items-center gap-2 px-6 py-5 rounded-lg border border-white/10 bg-white/[0.03] backdrop-blur-sm w-40 text-center hover:border-white/20 transition-colors h-full">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-sm">
@@ -312,11 +327,21 @@ function StreamerCard({ streamer }: { streamer: UpcomingStreamer; index: number 
         </div>
     );
 
-    return streamer.stream_url ? (
-        <a href={streamer.stream_url} target="_blank" rel="noopener noreferrer">
-            {inner}
-        </a>
-    ) : inner;
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 + index * 0.08, duration: 0.35 }}
+        >
+            {streamer.stream_url ? (
+                <a href={streamer.stream_url} target="_blank" rel="noopener noreferrer">
+                    {inner}
+                </a>
+            ) : (
+                inner
+            )}
+        </motion.div>
+    );
 }
 
 function SponsorBanner() {
@@ -374,13 +399,9 @@ function SponsorBanner() {
 function EmptyView() {
     return (
         <div>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center py-28 text-[#4a4a60]"
-            >
+            <div className="flex items-center justify-center py-28 text-[#4a4a60]">
                 No races yet.
-            </motion.div>
+            </div>
             <SponsorBanner />
         </div>
     );
