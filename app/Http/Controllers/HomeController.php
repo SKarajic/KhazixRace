@@ -62,10 +62,12 @@ class HomeController extends Controller
             'race' => $isLast ? null : $fastData,
             'last' => $isLast ? $fastData : null,
             'upcoming' => $upcoming ? $this->buildUpcomingData($upcoming) : null,
-            'race_matches' => Inertia::defer(fn () => $this->buildMatchFeed($race, $accountIds)),
-            'race_lp_series' => Inertia::defer(fn () => $this->buildLpSeries($race, $streamers)),
-            'race_spotlight' => Inertia::defer(fn () => $this->buildStreamersSpotlight($race, $streamers, $leaderboard)),
-            'race_stats' => Inertia::defer(fn () => $this->buildRaceStatsDeferred($race, $accountIds, $leaderboard)),
+            // Each group triggers a separate parallel request from the browser.
+            // 'feed' resolves fast (single query), 'lp' is medium, 'spotlight' is heaviest.
+            'race_matches' => Inertia::defer(fn () => $this->buildMatchFeed($race, $accountIds), 'feed'),
+            'race_stats' => Inertia::defer(fn () => $this->buildRaceStatsDeferred($race, $accountIds, $leaderboard), 'feed'),
+            'race_lp_series' => Inertia::defer(fn () => $this->buildLpSeries($race, $streamers), 'lp'),
+            'race_spotlight' => Inertia::defer(fn () => $this->buildStreamersSpotlight($race, $streamers, $leaderboard), 'spotlight'),
         ]);
     }
 
