@@ -9,6 +9,8 @@ interface Props {
     row: RowType;
     position: number;
     streamerMatches: MatchFeedRow[];
+    topLp: number;
+    neckAndNeck: boolean;
 }
 
 export const rowVariant = {
@@ -16,23 +18,45 @@ export const rowVariant = {
     show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
 };
 
-export function LeaderboardRow({ row, position, streamerMatches }: Props) {
+export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndNeck }: Props) {
     const [expanded, setExpanded] = useState(false);
     const isTop = position === 1;
+    const lpPct = topLp > 0 ? Math.min((row.total_lp / topLp) * 100, 100) : 0;
+    const isHot = neckAndNeck && !isTop;
 
     return (
         <motion.div variants={rowVariant} className="overflow-hidden">
             <div
                 className={`bg-[#0d0d18] border rounded-lg transition-colors ${
-                    isTop ? 'border-cyan-500/30' : 'border-white/5 hover:border-cyan-500/20'
+                    isHot
+                        ? 'border-orange-500/30 hover:border-orange-500/50'
+                        : isTop
+                          ? 'border-cyan-500/30'
+                          : 'border-white/5 hover:border-cyan-500/20'
                 }`}
-                style={isTop ? { boxShadow: '0 0 20px #00d4ff0a' } : undefined}
+                style={
+                    isTop
+                        ? { boxShadow: '0 0 20px #00d4ff0a' }
+                        : isHot
+                          ? { boxShadow: '0 0 16px rgba(249,115,22,0.05)' }
+                          : undefined
+                }
             >
+                {/* LP progress bar — fills along the top edge */}
+                <div className="h-px w-full bg-white/[0.04] rounded-t-lg overflow-hidden">
+                    <motion.div
+                        className={`h-full ${isTop ? 'bg-cyan-500/60' : 'bg-white/20'}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${lpPct}%` }}
+                        transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
+                    />
+                </div>
+
                 <div className="flex items-center gap-3 px-4 py-3">
                     {/* Position */}
                     <span
                         className={`w-5 text-center text-sm font-mono font-bold flex-shrink-0 ${
-                            isTop ? 'text-cyan-400' : 'text-[#4a4a60]'
+                            isTop ? 'text-cyan-400' : isHot ? 'text-orange-400' : 'text-[#4a4a60]'
                         }`}
                     >
                         {position}
@@ -52,10 +76,18 @@ export function LeaderboardRow({ row, position, streamerMatches }: Props) {
                         <p className="text-xs text-[#4a4a60] truncate">{row.account_display_name}</p>
                     </div>
 
+                    {/* Total LP */}
+                    <div className="text-right hidden sm:block flex-shrink-0">
+                        <span className={`text-base font-mono font-bold tabular-nums ${isTop ? 'text-cyan-300' : 'text-white/70'}`}>
+                            {row.total_lp.toLocaleString()}
+                        </span>
+                        <p className="text-[10px] text-[#4a4a60]">Race LP</p>
+                    </div>
+
                     {/* W / L */}
                     <div className="text-right hidden md:block flex-shrink-0">
                         <p className="text-sm font-mono">
-                            <span className="text-cyan-300">{row.wins}</span>
+                            <span className="text-emerald-400">{row.wins}</span>
                             <span className="text-[#4a4a60]"> / </span>
                             <span className="text-red-400">{row.losses}</span>
                         </p>

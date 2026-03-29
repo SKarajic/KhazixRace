@@ -1,6 +1,7 @@
+import { Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useCountdown } from '@/hooks/use-countdown';
-import type { RaceData } from '@/types/race';
+import type { LeaderboardRow, RaceData } from '@/types/race';
 
 interface Props {
     race: RaceData;
@@ -11,97 +12,184 @@ export function RaceHeader({ race, isLast = false }: Props) {
     const isActive = !isLast && new Date(race.ends_at) > new Date();
     const countdown = useCountdown(race.ends_at);
 
+    const totalGames = race.leaderboard.reduce((n, r) => n + r.wins + r.losses, 0);
+    const topLp = race.leaderboard[0]?.total_lp ?? null;
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="relative w-full overflow-hidden"
-            style={{ minHeight: 300 }}
-        >
-            {/* Hero image */}
+        <div className="relative w-full overflow-hidden" style={{ minHeight: 'min(88svh, 700px)' }}>
+
+            {/* ── Background ── */}
+            <div className="absolute inset-0 bg-[#05050a]" />
+
+            {/* Hero image — high opacity, let it dominate */}
             <img
                 src="/images/hero.png"
-                alt="Kha'Zix"
-                className="absolute inset-0 w-full h-full object-cover object-[length:center_40%]"
+                alt=""
+                aria-hidden
                 draggable={false}
+                className="absolute inset-0 w-full h-full object-cover object-[50%_25%] select-none pointer-events-none opacity-70"
             />
 
-            {/* Gradient overlays — top fade + bottom fade into page background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#05050a]/60 via-transparent to-[#05050a]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#05050a]/40 via-transparent to-[#05050a]/40" />
+            {/* Single directional overlay — only darkens the left side for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#05050a]/95 via-[#05050a]/50 to-[#05050a]/10" />
 
-            {/* Content overlay — pt-16 clears the fixed nav */}
-            <div className="relative flex flex-col items-center justify-center text-center px-6 pt-24 pb-16" style={{ minHeight: 460 }}>
-                <motion.p
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                    className="text-xs tracking-[0.5em] uppercase text-[#4a4a60] mb-3"
-                >
-                    {isLast ? 'Final Standings' : 'Live Race'}
-                </motion.p>
+            {/* Top edge fade into nav */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#05050a]/80 to-transparent" />
 
-                <motion.h1
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                    className="text-4xl md:text-5xl font-bold tracking-[0.25em] uppercase text-white mb-5 drop-shadow-lg"
-                >
-                    {race.name}
-                </motion.h1>
+            {/* Bottom fade into page */}
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05050a] via-[#05050a]/60 to-transparent" />
 
+            {/* Corner brackets */}
+            <div className="absolute top-6 left-6 w-8 h-8 border-l border-t border-white/15" />
+            <div className="absolute top-6 right-6 w-8 h-8 border-r border-t border-white/15" />
+            <div className="absolute bottom-16 left-6 w-8 h-8 border-l border-b border-white/15" />
+            <div className="absolute bottom-16 right-6 w-8 h-8 border-r border-b border-white/15" />
+
+            {/* ── Content ── */}
+            <div
+                className="relative flex flex-col justify-center max-w-5xl mx-auto px-6"
+                style={{ minHeight: 'min(88svh, 700px)', paddingTop: '5rem', paddingBottom: '5.5rem' }}
+            >
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.45, duration: 0.3 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="max-w-xl"
                 >
-                    <StatusBadge active={isActive} />
+                    {/* Eyebrow */}
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="h-px w-6 bg-white/30" />
+                        <span className="text-[10px] tracking-[0.6em] uppercase text-white/40">
+                            {isLast ? 'Final Standings' : 'League of Legends'}
+                        </span>
+                    </div>
+
+                    {/* Race name */}
+                    <h1
+                        className="font-black uppercase text-white leading-[0.88] mb-5"
+                        style={{
+                            fontSize: 'clamp(2.8rem, 8vw, 5.5rem)',
+                            letterSpacing: '0.05em',
+                            textShadow: '0 2px 40px rgba(0,0,0,0.8)',
+                        }}
+                    >
+                        {race.name}
+                    </h1>
+
+                    {/* Status */}
+                    <div className="flex items-center gap-4 mb-7">
+                        <StatusBadge active={isActive} />
+                        {topLp !== null && (
+                            <span className="text-xs text-white/30">
+                                Leader at <span className="text-white/60 font-semibold tabular-nums">{topLp.toLocaleString()} LP</span>
+                            </span>
+                        )}
+                        {totalGames > 0 && (
+                            <span className="text-xs text-white/30">
+                                <span className="text-white/60 font-semibold tabular-nums">{totalGames}</span> games played
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Countdown */}
+                    {isActive && !countdown.expired && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.5 }}
+                            className="mb-7"
+                        >
+                            <p className="text-[10px] tracking-[0.5em] uppercase text-white/30 mb-3">
+                                Ends in
+                            </p>
+                            <div className="flex items-end gap-1.5">
+                                {countdown.days > 0 && (
+                                    <>
+                                        <CountdownBlock value={countdown.days} label="Days" />
+                                        <Colon />
+                                    </>
+                                )}
+                                <CountdownBlock value={countdown.hours} label="Hrs" />
+                                <Colon />
+                                <CountdownBlock value={countdown.minutes} label="Min" />
+                                <Colon />
+                                <CountdownBlock value={countdown.seconds} label="Sec" />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Stream link */}
+                    {race.stream_url && (
+                        <motion.a
+                            href={race.stream_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.35, duration: 0.4 }}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold tracking-widest uppercase bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-colors backdrop-blur-sm"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            Watch Stream
+                        </motion.a>
+                    )}
                 </motion.div>
-
-                {!isLast && isActive && !countdown.expired && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.55, duration: 0.4 }}
-                        className="mt-4 flex flex-col items-center gap-2"
-                    >
-                        <p className="text-xs tracking-[0.4em] uppercase text-[#4a4a60]">Ends in</p>
-                        <div className="flex items-end gap-2.5">
-                            {countdown.days > 0 && <CountdownUnit value={countdown.days} label="Days" />}
-                            <CountdownUnit value={countdown.hours} label="Hrs" />
-                            <CountdownUnit value={countdown.minutes} label="Min" />
-                            <CountdownUnit value={countdown.seconds} label="Sec" />
-                        </div>
-                    </motion.div>
-                )}
-
-                {race.stream_url && (
-                    <motion.a
-                        href={race.stream_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6, duration: 0.4 }}
-                        className="mt-5 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-cyan-400 hover:text-cyan-300 transition-colors"
-                    >
-                        Watch Stream →
-                    </motion.a>
-                )}
             </div>
-        </motion.div>
+
+            {/* ── Participant strip ── */}
+            {race.leaderboard.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    className="absolute bottom-0 left-0 right-0"
+                >
+                    <div className="max-w-5xl mx-auto px-6 pb-4">
+                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                            <span className="text-[10px] tracking-[0.4em] uppercase text-white/25 flex-shrink-0 mr-2">
+                                Participants
+                            </span>
+                            {race.leaderboard.map((row, i) => (
+                                <ParticipantChip key={row.streamer_id} row={row} position={i + 1} />
+                            ))}
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </div>
     );
 }
 
-function CountdownUnit({ value, label }: { value: number; label: string }) {
+function ParticipantChip({ row, position }: { row: LeaderboardRow; position: number }) {
     return (
-        <div className="flex flex-col items-center">
-            <span className="tabular-nums text-2xl font-bold text-white tracking-tight w-10 text-center">
-                {String(value).padStart(2, '0')}
-            </span>
-            <span className="text-[10px] tracking-[0.3em] uppercase text-[#4a4a60] mt-0.5">{label}</span>
+        <Link
+            href={`/streamers/${row.streamer_id}`}
+            className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1.5 rounded bg-black/40 border border-white/10 hover:border-white/30 hover:bg-black/60 transition-colors backdrop-blur-sm"
+        >
+            <span className="text-[10px] font-mono text-white/30">{position}</span>
+            <span className="text-xs font-semibold text-white/80">{row.name}</span>
+        </Link>
+    );
+}
+
+function CountdownBlock({ value, label }: { value: number; label: string }) {
+    return (
+        <div className="flex flex-col items-center gap-1.5">
+            <div className="bg-black/50 border border-white/15 rounded-lg px-2.5 py-2 sm:px-4 sm:py-2.5 min-w-[3rem] sm:min-w-[4.5rem] text-center backdrop-blur-sm">
+                <span className="tabular-nums text-3xl sm:text-5xl font-black text-white tracking-tight leading-none">
+                    {String(value).padStart(2, '0')}
+                </span>
+            </div>
+            <span className="text-[9px] tracking-[0.35em] uppercase text-white/30">{label}</span>
         </div>
+    );
+}
+
+function Colon() {
+    return (
+        <span className="text-2xl sm:text-4xl font-black text-white/20 mb-5 flex-shrink-0 select-none">
+            :
+        </span>
     );
 }
 
@@ -110,8 +198,8 @@ function StatusBadge({ active }: { active: boolean }) {
         <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs tracking-widest uppercase font-semibold backdrop-blur-sm ${
                 active
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                    : 'bg-white/5 text-[#4a4a60] border border-white/15'
+                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/40'
+                    : 'bg-white/5 text-white/30 border border-white/10'
             }`}
         >
             {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
