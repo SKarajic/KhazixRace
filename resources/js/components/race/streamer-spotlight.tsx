@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
 import { tierColor, tierLabel } from '@/lib/tier-utils';
 import type { StreamerSpotlightEntry } from '@/types/race';
 
@@ -32,10 +31,10 @@ function fmtK(n: number): string {
 
 interface Props {
     streamers: StreamerSpotlightEntry[];
+    activeIdx: number;
 }
 
-export function StreamerSpotlight({ streamers }: Props) {
-    const [activeIdx, setActiveIdx] = useState(0);
+export function StreamerSpotlight({ streamers, activeIdx }: Props) {
     const active = streamers[Math.min(activeIdx, streamers.length - 1)];
 
     if (!active) return null;
@@ -46,191 +45,162 @@ export function StreamerSpotlight({ streamers }: Props) {
     const wrColor = winPct >= 60 ? 'text-cyan-400' : winPct >= 50 ? 'text-white' : 'text-red-400';
 
     return (
-        <section>
-            <h2 className="text-xs tracking-[0.3em] uppercase text-[#4a4a60] mb-4">Streamer Stats</h2>
-
-            {/* Tabs */}
-            {streamers.length > 1 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {streamers.map((s, i) => (
-                        <button
-                            key={s.streamer_id}
-                            onClick={() => setActiveIdx(i)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all ${
-                                i === activeIdx
-                                    ? 'bg-white/10 text-white border border-white/20'
-                                    : 'text-[#4a4a60] border border-white/5 hover:text-white hover:border-white/15'
-                            }`}
-                        >
-                            {s.name}
-                            {s.tier && (
-                                <span className={`ml-2 text-[10px] ${i === activeIdx ? 'opacity-70' : 'opacity-40'}`}>
-                                    {tierLabel(s.tier)}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Card */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={active.streamer_id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.22 }}
-                    className="relative rounded-xl overflow-hidden border border-white/5 bg-[#0d0d18]"
-                >
-                    {/* Champion blurred background */}
-                    {active.champion_icon_url && (
-                        <img
-                            src={active.champion_icon_url}
-                            alt=""
-                            aria-hidden
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover scale-[3.5] blur-3xl opacity-[0.12] select-none pointer-events-none"
-                        />
-                    )}
-
-                    {/* Tier accent top line */}
-                    <div
-                        className="absolute top-0 left-0 right-0 h-px"
-                        style={{ background: `linear-gradient(to right, transparent, ${accent}90, transparent)` }}
+        <AnimatePresence mode="wait">
+            <motion.div
+                key={active.streamer_id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22 }}
+                className="relative rounded-xl overflow-hidden border border-white/5 bg-[#0d0d18]"
+            >
+                {/* Champion blurred background */}
+                {active.champion_icon_url && (
+                    <img
+                        src={active.champion_icon_url}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover scale-[3.5] blur-3xl opacity-[0.12] select-none pointer-events-none"
                     />
+                )}
 
-                    {/* Subtle glow below accent */}
-                    <div
-                        className="absolute top-0 left-0 right-0 h-20 opacity-10 pointer-events-none"
-                        style={{ background: `radial-gradient(ellipse 60% 100% at 50% 0%, ${accent}, transparent)` }}
-                    />
+                {/* Tier accent top line */}
+                <div
+                    className="absolute top-0 left-0 right-0 h-px"
+                    style={{ background: `linear-gradient(to right, transparent, ${accent}90, transparent)` }}
+                />
 
-                    {/* Content */}
-                    <div className="relative p-5 sm:p-6">
-                        {/* Header row */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-5">
-                            {/* Champion icon + glow */}
-                            <div className="relative flex-shrink-0 self-center sm:self-auto">
-                                {active.champion_icon_url ? (
-                                    <>
-                                        <div
-                                            className="absolute rounded-full opacity-50 blur-lg"
-                                            style={{ inset: '-10px', background: `radial-gradient(circle, ${accent}50, transparent 70%)` }}
-                                        />
-                                        <img
-                                            src={active.champion_icon_url}
-                                            alt=""
-                                            loading="lazy"
-                                            className="relative w-16 h-16 rounded-full"
-                                            style={{ border: `2px solid ${accent}50`, boxShadow: `0 0 24px ${accent}25` }}
-                                        />
-                                    </>
-                                ) : (
-                                    <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10" />
-                                )}
-                            </div>
+                {/* Subtle glow below accent */}
+                <div
+                    className="absolute top-0 left-0 right-0 h-20 opacity-10 pointer-events-none"
+                    style={{ background: `radial-gradient(ellipse 60% 100% at 50% 0%, ${accent}, transparent)` }}
+                />
 
-                            {/* Identity */}
-                            <div className="flex-1 min-w-0 text-center sm:text-left">
-                                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider leading-none truncate">
-                                    {active.name}
-                                </h3>
-                                <div className="flex flex-wrap items-center gap-2 mt-1.5 justify-center sm:justify-start">
-                                    {active.tier ? (
-                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${tierColor(active.tier)}`}>
-                                            {tierLabel(active.tier)} {active.rank}
-                                            {active.points !== null && ` · ${active.points} LP`}
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-[#4a4a60]">Unranked</span>
-                                    )}
-                                    {active.stream_url && (
-                                        <a
-                                            href={active.stream_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 hover:bg-cyan-500/20 transition-colors"
-                                        >
-                                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                                            Live
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* W / L / WR */}
-                            {totalGames > 0 && (
-                                <div className="flex items-center gap-3 flex-shrink-0 self-center">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-black text-emerald-400 tabular-nums leading-none">
-                                            {active.wins}
-                                        </div>
-                                        <div className="text-[10px] tracking-widest uppercase text-emerald-400/50 mt-0.5">
-                                            W
-                                        </div>
-                                    </div>
-                                    <div className="text-[#2a2a40] text-xl font-light">/</div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-black text-red-400 tabular-nums leading-none">
-                                            {active.losses}
-                                        </div>
-                                        <div className="text-[10px] tracking-widest uppercase text-red-400/50 mt-0.5">
-                                            L
-                                        </div>
-                                    </div>
-                                    <div className="h-8 w-px bg-white/10" />
-                                    <div className="text-center">
-                                        <div className={`text-2xl font-black tabular-nums leading-none ${wrColor}`}>
-                                            {active.win_rate}%
-                                        </div>
-                                        <div className="text-[10px] tracking-widest uppercase text-[#4a4a60] mt-0.5">
-                                            {totalGames}G
-                                        </div>
-                                    </div>
-                                </div>
+                {/* Content */}
+                <div className="relative p-5 sm:p-6">
+                    {/* Header row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-5">
+                        {/* Champion icon + glow */}
+                        <div className="relative flex-shrink-0 self-center sm:self-auto">
+                            {active.champion_icon_url ? (
+                                <>
+                                    <div
+                                        className="absolute rounded-full opacity-50 blur-lg"
+                                        style={{ inset: '-10px', background: `radial-gradient(circle, ${accent}50, transparent 70%)` }}
+                                    />
+                                    <img
+                                        src={active.champion_icon_url}
+                                        alt=""
+                                        loading="lazy"
+                                        className="relative w-16 h-16 rounded-full"
+                                        style={{ border: `2px solid ${accent}50`, boxShadow: `0 0 24px ${accent}25` }}
+                                    />
+                                </>
+                            ) : (
+                                <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10" />
                             )}
                         </div>
 
-                        {/* Win bar */}
+                        {/* Identity */}
+                        <div className="flex-1 min-w-0 text-center sm:text-left">
+                            <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider leading-none truncate">
+                                {active.name}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5 justify-center sm:justify-start">
+                                {active.tier ? (
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${tierColor(active.tier)}`}>
+                                        {tierLabel(active.tier)} {active.rank}
+                                        {active.points !== null && ` · ${active.points} LP`}
+                                    </span>
+                                ) : (
+                                    <span className="text-xs text-[#4a4a60]">Unranked</span>
+                                )}
+                                {active.stream_url && (
+                                    <a
+                                        href={active.stream_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 hover:bg-cyan-500/20 transition-colors"
+                                    >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                        Live
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* W / L / WR */}
                         {totalGames > 0 && (
-                            <div className="h-1 rounded-full overflow-hidden bg-white/5 mb-5">
-                                <motion.div
-                                    className="h-full rounded-full bg-emerald-500/60"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${winPct}%` }}
-                                    transition={{ delay: 0.1, duration: 0.7, ease: 'easeOut' }}
-                                />
-                            </div>
-                        )}
-
-                        {/* Stats grid */}
-                        {active.stats && (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-                                <MiniStat label="Avg KDA" value={active.stats.avg_kda.toFixed(2)} mono />
-                                <MiniStat label="Avg Damage" value={fmtK(active.stats.avg_damage)} />
-                                <MiniStat label="Avg CS/min" value={String(active.stats.avg_cs_per_min)} mono />
-                                <MiniStat label="Avg Duration" value={fmtDuration(active.stats.avg_duration)} mono />
-                            </div>
-                        )}
-
-                        {/* Most played champions */}
-                        {active.champion_stats.length > 0 && (
-                            <div>
-                                <p className="text-[10px] tracking-[0.35em] uppercase text-[#4a4a60] mb-2">
-                                    Most Played
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {active.champion_stats.map((cs) => (
-                                        <ChampionPill key={cs.champion_name} stat={cs} />
-                                    ))}
+                            <div className="flex items-center gap-3 flex-shrink-0 self-center">
+                                <div className="text-center">
+                                    <div className="text-2xl font-black text-emerald-400 tabular-nums leading-none">
+                                        {active.wins}
+                                    </div>
+                                    <div className="text-[10px] tracking-widest uppercase text-emerald-400/50 mt-0.5">
+                                        W
+                                    </div>
+                                </div>
+                                <div className="text-[#2a2a40] text-xl font-light">/</div>
+                                <div className="text-center">
+                                    <div className="text-2xl font-black text-red-400 tabular-nums leading-none">
+                                        {active.losses}
+                                    </div>
+                                    <div className="text-[10px] tracking-widest uppercase text-red-400/50 mt-0.5">
+                                        L
+                                    </div>
+                                </div>
+                                <div className="h-8 w-px bg-white/10" />
+                                <div className="text-center">
+                                    <div className={`text-2xl font-black tabular-nums leading-none ${wrColor}`}>
+                                        {active.win_rate}%
+                                    </div>
+                                    <div className="text-[10px] tracking-widest uppercase text-[#4a4a60] mt-0.5">
+                                        {totalGames}G
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
-                </motion.div>
-            </AnimatePresence>
-        </section>
+
+                    {/* Win bar */}
+                    {totalGames > 0 && (
+                        <div className="h-1 rounded-full overflow-hidden bg-white/5 mb-5">
+                            <motion.div
+                                className="h-full rounded-full bg-emerald-500/60"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${winPct}%` }}
+                                transition={{ delay: 0.1, duration: 0.7, ease: 'easeOut' }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Stats grid */}
+                    {active.stats && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                            <MiniStat label="Avg KDA" value={active.stats.avg_kda.toFixed(2)} mono />
+                            <MiniStat label="Avg Damage" value={fmtK(active.stats.avg_damage)} />
+                            <MiniStat label="Avg CS/min" value={String(active.stats.avg_cs_per_min)} mono />
+                            <MiniStat label="Avg Duration" value={fmtDuration(active.stats.avg_duration)} mono />
+                        </div>
+                    )}
+
+                    {/* Most played champions */}
+                    {active.champion_stats.length > 0 && (
+                        <div>
+                            <p className="text-[10px] tracking-[0.35em] uppercase text-[#4a4a60] mb-2">
+                                Most Played
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {active.champion_stats.map((cs) => (
+                                    <ChampionPill key={cs.champion_name} stat={cs} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+        </AnimatePresence>
     );
 }
 

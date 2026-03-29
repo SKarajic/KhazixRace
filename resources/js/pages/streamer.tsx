@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
+import type { ReactNode } from 'react';
 import { LpHistoryChart } from '@/components/streamer/lp-history-chart';
 import { MatchList } from '@/components/streamer/match-list';
 import { StreamerStatCards } from '@/components/streamer/stat-cards';
@@ -19,7 +20,7 @@ export default function Streamer({ streamer, recent_matches, lp_history }: Props
     const championIconUrl = recent_matches[0]?.champion_icon_url ?? null;
 
     return (
-        <PublicLayout>
+        <>
             <Head title={streamer.name} />
             <div>
                 <StreamerHero streamer={streamer} championIconUrl={championIconUrl} />
@@ -33,9 +34,11 @@ export default function Streamer({ streamer, recent_matches, lp_history }: Props
                     <MatchList matches={recent_matches} />
                 </div>
             </div>
-        </PublicLayout>
+        </>
     );
 }
+
+(Streamer as { layout?: (page: ReactNode) => ReactNode }).layout = (page) => <PublicLayout>{page}</PublicLayout>;
 
 function ChampionStats({ stats }: { stats: ChampionStat[] }) {
     return (

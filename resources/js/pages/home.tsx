@@ -1,19 +1,19 @@
 import { Deferred, Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import moment from 'moment-timezone';
 import { useMemo } from 'react';
 import { Leaderboard } from '@/components/race/leaderboard';
 import { LpChart } from '@/components/race/lp-chart';
 import { MatchFeed } from '@/components/race/match-feed';
 import { RaceHeader } from '@/components/race/race-header';
-import { RaceStatCards } from '@/components/race/stat-cards';
 import { StreamerSpotlight } from '@/components/race/streamer-spotlight';
 import { TwitchEmbed } from '@/components/twitch-embed';
 import { useStream } from '@/contexts/stream-context';
 import { useCountdown } from '@/hooks/use-countdown';
+import { tierLabel } from '@/lib/tier-utils';
 import PublicLayout from '@/layouts/public-layout';
-import type { LpSeries, MatchFeedRow, RaceData, RaceStats, StreamerSpotlightEntry } from '@/types/race';
+import type { LpSeries, MatchFeedRow, RaceData, StreamerSpotlightEntry } from '@/types/race';
 
 interface UpcomingStreamer {
     id: number;
@@ -36,12 +36,11 @@ interface Props {
     race_matches?: MatchFeedRow[];
     race_lp_series?: LpSeries[];
     race_spotlight?: StreamerSpotlightEntry[];
-    race_stats?: RaceStats | null;
 }
 
-export default function Home({ race, upcoming, last, race_matches = [], race_lp_series = [], race_spotlight = [], race_stats = null }: Props) {
+export default function Home({ race, upcoming, last, race_matches = [], race_lp_series = [], race_spotlight = [] }: Props) {
     return (
-        <PublicLayout>
+        <>
             <Head title="" />
             {race ? (
                 <RaceView
@@ -49,7 +48,6 @@ export default function Home({ race, upcoming, last, race_matches = [], race_lp_
                     matches={race_matches}
                     lpSeries={race_lp_series}
                     spotlight={race_spotlight}
-                    stats={race_stats}
                 />
             ) : upcoming ? (
                 <UpcomingView upcoming={upcoming} />
@@ -60,14 +58,16 @@ export default function Home({ race, upcoming, last, race_matches = [], race_lp_
                     matches={race_matches}
                     lpSeries={race_lp_series}
                     spotlight={race_spotlight}
-                    stats={race_stats}
                 />
             ) : (
                 <EmptyView />
             )}
-        </PublicLayout>
+        </>
     );
 }
+
+// Persistent layout — keeps PublicLayout (and its stream context) mounted across navigations
+(Home as { layout?: (page: ReactNode) => ReactNode }).layout = (page) => <PublicLayout>{page}</PublicLayout>;
 
 interface RaceViewProps {
     race: RaceData;
@@ -75,18 +75,26 @@ interface RaceViewProps {
     matches: MatchFeedRow[];
     lpSeries: LpSeries[];
     spotlight: StreamerSpotlightEntry[];
-    stats: RaceStats | null;
 }
 
-function RaceView({ race, isLast = false, matches, lpSeries, spotlight, stats }: RaceViewProps) {
+function RaceView({ race, isLast = false, matches, lpSeries, spotlight }: RaceViewProps) {
     const { activeUrl, setActiveUrl } = useStream();
+
+    // Streamers from leaderboard that have stream URLs (for tab bar)
     const streamers = useMemo(
         () => race.leaderboard.filter((r) => !!r.stream_url),
         [race.leaderboard],
     );
 
-    // The embed shows: the race's dedicated stream, or whatever is active in the context
+    // The embed URL: dedicated race stream takes priority, otherwise use selected stream
     const embedUrl = race.stream_url ?? activeUrl ?? null;
+
+    // Derive which spotlight entry to show based on the active stream URL
+    const activeSpotlightIdx = useMemo(() => {
+        if (!activeUrl || spotlight.length === 0) return 0;
+        const idx = spotlight.findIndex((s) => s.stream_url === activeUrl);
+        return idx >= 0 ? idx : 0;
+    }, [activeUrl, spotlight]);
 
     return (
         <div>
@@ -96,45 +104,49 @@ function RaceView({ race, isLast = false, matches, lpSeries, spotlight, stats }:
 
                 <Leaderboard leaderboard={race.leaderboard} matches={matches} />
 
-                {embedUrl && (
-                    <div className="space-y-0">
-                        {/* Tabs — only when there is no dedicated race stream */}
-                        {!race.stream_url && streamers.length > 1 && (
-                            <div className="flex gap-1 mb-2 flex-wrap">
-                                {streamers.map((s) => (
-                                    <button
-                                        key={s.streamer_id}
-                                        onClick={() => s.stream_url && setActiveUrl(s.stream_url)}
-                                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                                            activeUrl === s.stream_url
-                                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                                                : 'bg-white/5 text-[#4a4a60] border border-white/5 hover:text-white hover:border-white/20'
-                                        }`}
-                                    >
-                                        {s.name}
-                                    </button>
-                                ))}
-                            </div>
+                {/* Merged stream + streamer stats section */}
+                <section className="space-y-4">
+                    {/* Tab bar — shown when there's no dedicated race stream and multiple streamers */}
+                    {!race.stream_url && streamers.length > 1 && (
+                        <div className="flex gap-1.5 flex-wrap">
+                            {streamers.map((s) => (
+                                <button
+                                    key={s.streamer_id}
+                                    onClick={() => s.stream_url && setActiveUrl(s.stream_url)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all ${
+                                        activeUrl === s.stream_url
+                                            ? 'bg-white/10 text-white border border-white/20'
+                                            : 'text-[#4a4a60] border border-white/5 hover:text-white hover:border-white/15'
+                                    }`}
+                                >
+                                    {s.name}
+                                    {s.tier && (
+                                        <span className={`ml-2 text-[10px] ${activeUrl === s.stream_url ? 'opacity-70' : 'opacity-40'}`}>
+                                            {tierLabel(s.tier)}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Stream embed */}
+                    {embedUrl && <TwitchEmbed url={embedUrl} />}
+
+                    {/* Streamer stats — fades in once deferred data resolves */}
+                    <Deferred data="race_spotlight" fallback={<SpotlightSkeleton />}>
+                        {() => spotlight.length > 0 && (
+                            <FadeIn>
+                                <StreamerSpotlight
+                                    streamers={spotlight}
+                                    activeIdx={activeSpotlightIdx}
+                                />
+                            </FadeIn>
                         )}
-                        <TwitchEmbed url={embedUrl} />
-                    </div>
-                )}
+                    </Deferred>
+                </section>
 
-                <Deferred data="Ca" fallback={<StatCardsSkeleton />}>
-                    {() => stats && (
-                        <FadeIn>
-                            <RaceStatCards stats={stats} participantCount={race.leaderboard.length} />
-                        </FadeIn>
-                    )}
-                </Deferred>
-
-                <Deferred data="race_spotlight" fallback={<SpotlightSkeleton />}>
-                    {() => spotlight.length > 0 && (
-                        <FadeIn>
-                            <StreamerSpotlight streamers={spotlight} />
-                        </FadeIn>
-                    )}
-                </Deferred>
+                {/* {race_stats commented out} */}
 
                 <Deferred data="race_lp_series" fallback={<ChartSkeleton />}>
                     {() => (
@@ -164,27 +176,9 @@ function FadeIn({ children }: PropsWithChildren) {
     );
 }
 
-function StatCardsSkeleton() {
-    return (
-        <div>
-            <div className="h-3 w-24 rounded bg-white/[0.04] mb-4 animate-pulse" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="h-[76px] rounded-lg bg-white/[0.03] border border-white/5 animate-pulse" />
-                ))}
-            </div>
-        </div>
-    );
-}
-
 function SpotlightSkeleton() {
     return (
         <div className="rounded-xl border border-white/5 overflow-hidden">
-            <div className="flex gap-1.5 px-4 pt-4 pb-3 border-b border-white/5">
-                {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-7 w-20 rounded-md bg-white/[0.04] animate-pulse" />
-                ))}
-            </div>
             <div className="h-56 bg-white/[0.02] animate-pulse" />
         </div>
     );

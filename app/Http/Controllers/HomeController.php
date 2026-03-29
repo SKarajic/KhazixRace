@@ -67,7 +67,7 @@ class HomeController extends Controller
             // Each group triggers a separate parallel request from the browser.
             // 'feed' resolves fast (single query), 'lp' is medium, 'spotlight' is heaviest.
             'race_matches' => Inertia::defer(fn () => $this->buildMatchFeed($race, $accountIds), 'feed'),
-            'race_stats' => Inertia::defer(fn () => $this->buildRaceStatsDeferred($race, $accountIds, $leaderboard), 'feed'),
+            // 'race_stats' => Inertia::defer(fn () => $this->buildRaceStatsDeferred($race, $accountIds, $leaderboard), 'feed'),
             'race_lp_series' => Inertia::defer(fn () => $this->buildLpSeries($race, $streamers), 'lp'),
             'race_spotlight' => Inertia::defer(fn () => $this->buildStreamersSpotlight($race, $streamers, $leaderboard), 'spotlight'),
         ]);

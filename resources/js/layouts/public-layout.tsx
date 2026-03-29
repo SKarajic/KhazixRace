@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { FloatingPlayer } from '@/components/floating-player';
 import { StreamContext } from '@/contexts/stream-context';
@@ -47,6 +47,15 @@ export default function PublicLayout({ children }: PropsWithChildren) {
         } catch { /* ignore */ }
         return raceStreams[0]?.stream_url ?? null;
     });
+
+    // Persist the active stream channel to localStorage whenever it changes
+    useEffect(() => {
+        const channel = activeUrl ? extractChannel(activeUrl) : null;
+        try {
+            if (channel) localStorage.setItem(LS_STREAM_KEY, channel);
+            else localStorage.removeItem(LS_STREAM_KEY);
+        } catch { /* ignore */ }
+    }, [activeUrl]);
 
     const streamCtx = useMemo(() => ({ activeUrl, setActiveUrl }), [activeUrl]);
 
