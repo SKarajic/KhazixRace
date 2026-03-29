@@ -21,8 +21,8 @@ export const rowVariant = {
 export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndNeck }: Props) {
     const [expanded, setExpanded] = useState(false);
     const isTop = position === 1;
-    const lpPct = topLp > 0 ? Math.min((row.total_lp / topLp) * 100, 100) : 0;
     const isHot = neckAndNeck && !isTop;
+    const lpPct = topLp > 0 ? Math.min((row.total_lp / topLp) * 100, 100) : 0;
 
     return (
         <motion.div variants={rowVariant} className="overflow-hidden">
@@ -42,7 +42,7 @@ export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndN
                           : undefined
                 }
             >
-                {/* LP progress bar — fills along the top edge */}
+                {/* LP progress bar along top edge */}
                 <div className="h-px w-full bg-white/[0.04] rounded-t-lg overflow-hidden">
                     <motion.div
                         className={`h-full ${isTop ? 'bg-cyan-500/60' : 'bg-white/20'}`}
@@ -62,8 +62,16 @@ export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndN
                         {position}
                     </span>
 
-                    {/* Rank badge */}
-                    <TierBadge tier={row.tier} rank={row.rank} points={row.points} />
+                    {/* Champion icon */}
+                    {row.champion_icon_url ? (
+                        <img
+                            src={row.champion_icon_url}
+                            alt=""
+                            className="w-8 h-8 rounded flex-shrink-0"
+                        />
+                    ) : (
+                        <div className="w-8 h-8 rounded bg-white/5 flex-shrink-0" />
+                    )}
 
                     {/* Name & account */}
                     <div className="flex-1 min-w-0">
@@ -76,12 +84,16 @@ export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndN
                         <p className="text-xs text-[#4a4a60] truncate">{row.account_display_name}</p>
                     </div>
 
-                    {/* Total LP */}
-                    <div className="text-right hidden sm:block flex-shrink-0">
-                        <span className={`text-base font-mono font-bold tabular-nums ${isTop ? 'text-cyan-300' : 'text-white/70'}`}>
-                            {row.total_lp.toLocaleString()}
-                        </span>
-                        <p className="text-[10px] text-[#4a4a60]">Race LP</p>
+                    {/* Current rank — primary stat */}
+                    <div className="flex-shrink-0 text-right hidden sm:block">
+                        {row.tier ? (
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${tierColor(row.tier)}`}>
+                                {tierLabel(row.tier)} {row.rank}
+                                {row.points !== null && ` · ${row.points} LP`}
+                            </span>
+                        ) : (
+                            <span className="text-xs text-[#4a4a60]">Unranked</span>
+                        )}
                     </div>
 
                     {/* W / L */}
@@ -117,26 +129,5 @@ export function LeaderboardRow({ row, position, streamerMatches, topLp, neckAndN
                 <MatchDrawer matches={streamerMatches} open={expanded} />
             </div>
         </motion.div>
-    );
-}
-
-function TierBadge({ tier, rank, points }: { tier: string | null; rank: string | null; points: number | null }) {
-    if (!tier) {
-        return (
-            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-white/5 text-[#4a4a60] flex-shrink-0">
-                Unranked
-            </span>
-        );
-    }
-
-    return (
-        <motion.span
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className={`px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 ${tierColor(tier)}`}
-        >
-            {tierLabel(tier)} {rank}{points !== null ? ` ${points} LP` : ''}
-        </motion.span>
     );
 }

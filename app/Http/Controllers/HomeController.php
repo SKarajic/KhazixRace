@@ -95,6 +95,12 @@ class HomeController extends Controller
                 $total = (int) ($stat?->total ?? 0);
                 $losses = $total - $wins;
 
+                $participant = $match?->participant($account?->puuid);
+                $championId = $participant?->champion_id ?? 0;
+                $championIconUrl = $championId > 0
+                    ? Phizz::cdragon()->lol->championSummary($championId)->squarePortraitUrl()
+                    : null;
+
                 return [
                     'streamer_id' => $streamer->id,
                     'name' => $streamer->name,
@@ -108,6 +114,7 @@ class HomeController extends Controller
                     'wins' => $wins,
                     'losses' => $losses,
                     'win_rate' => $total > 0 ? round($wins / $total * 100) : 0,
+                    'champion_icon_url' => $championIconUrl,
                 ];
             })
             ->sortByDesc('total_lp')
@@ -165,6 +172,8 @@ class HomeController extends Controller
             'leaderboard' => $leaderboard,
             'lp_series' => $lpSeries,
             'matches' => $matchFeed,
+            'stats' => $this->buildRaceStats($matchFeed, $leaderboard),
+            'streamers_spotlight' => $this->buildStreamersSpotlight($race, $streamers, $leaderboard),
         ];
     }
 
@@ -199,6 +208,9 @@ class HomeController extends Controller
             'champion_icon_url' => $iconUrl,
             'is_win' => $match->is_win,
             'kda' => $kda,
+            'kills' => $participant?->kills ?? null,
+            'deaths' => $participant?->deaths ?? null,
+            'assists' => $participant?->assists ?? null,
             'tier' => $match->tier,
             'rank' => $match->rank,
             'points' => $match->points,
@@ -226,6 +238,218 @@ class HomeController extends Controller
                 'team_id' => $p->team_id,
                 'is_tracked' => $puuid !== null && $p->puuid === $puuid,
             ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Compute aggregate race statistics from the already-built match feed and leaderboard.
+     *
+     * @param  array<int, array<string, mixed>>  $matchFeed
+     * @param  array<int, array<string, mixed>>  $leaderboard
+     * @return array<string, mixed>
+     */
+    private function buildRaceStats(array $matchFeed, array $leaderboard): array
+    {
+        $matches = collect($matchFeed)->filter(fn ($m) => $m['kills'] !== null);
+
+        $totalGames = $matches->count();
+        $totalKills = $matches->sum('kills');
+        $totalAssists = $matches->sum('assists');
+        $avgDuration = $totalGames > 0 ? (int) round($matches->avg('duration') ?? 0) : 0;
+        $avgDamage = $totalGames > 0 ? (int) round($matches->whereNotNull('damage')->avg('damage') ?? 0) : 0;
+        $avgCs = $totalGames > 0 ? round($matches->whereNotNull('cs')->avg('cs') ?? 0, 1) : 0;
+
+        $mostPlayed = $matches
+            ->filter(fn ($m) => $m['champion_name'] !== '—')
+            ->groupBy('champion_name')
+            ->map(fn ($group, $name) => [
+                'name' => $name,
+                'icon_url' => $group->first()['champion_icon_url'],
+                'games' => $group->count(),
+                'wins' => $group->where('is_win', true)->count(),
+            ])
+            ->sortByDesc('games')
+            ->first();
+
+        $highestDamage = $matches->whereNotNull('damage')->sortByDesc('damage')->first();
+
+        $lb = collect($leaderboard);
+        $bestWr = $lb->filter(fn ($r) => ($r['wins'] + $r['losses']) >= 3)->sortByDesc('win_rate')->first();
+        $mostWins = $lb->sortByDesc('wins')->first();
+
+        return [
+            'total_games' => $totalGames,
+            'total_kills' => $totalKills,
+            'total_assists' => $totalAssists,
+            'avg_duration' => $avgDuration,
+            'avg_damage' => $avgDamage,
+            'avg_cs' => $avgCs,
+            'most_played_champion' => $mostPlayed ? [
+                'name' => $mostPlayed['name'],
+                'icon_url' => $mostPlayed['icon_url'],
+                'games' => $mostPlayed['games'],
+                'wins' => $mostPlayed['wins'],
+            ] : null,
+            'highest_damage_game' => $highestDamage ? [
+                'streamer_name' => $highestDamage['streamer_name'],
+                'champion_name' => $highestDamage['champion_name'],
+                'champion_icon_url' => $highestDamage['champion_icon_url'],
+                'damage' => $highestDamage['damage'],
+            ] : null,
+            'best_wr' => $bestWr ? [
+                'name' => $bestWr['name'],
+                'win_rate' => $bestWr['win_rate'],
+                'wins' => $bestWr['wins'],
+                'losses' => $bestWr['losses'],
+            ] : null,
+            'most_wins' => $mostWins ? [
+                'name' => $mostWins['name'],
+                'wins' => $mostWins['wins'],
+                'champion_icon_url' => $mostWins['champion_icon_url'],
+            ] : null,
+        ];
+    }
+
+    /**
+     * Build per-streamer spotlight data (stats + champion stats for race period).
+     *
+     * @param  \Illuminate\Support\Collection<int, Streamer>  $streamers
+     * @param  array<int, array<string, mixed>>  $leaderboard
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildStreamersSpotlight(Race $race, $streamers, array $leaderboard): array
+    {
+        $lbByStreamerId = collect($leaderboard)->keyBy('streamer_id');
+        $result = [];
+
+        foreach ($streamers as $streamer) {
+            $account = $streamer->primaryAccount;
+            if (! $account) {
+                continue;
+            }
+
+            $matches = LeagueMatch::where('league_account_id', $account->id)
+                ->whereBetween('game_start_at', [$race->starts_at, $race->ends_at])
+                ->latest('game_start_at')
+                ->limit(30)
+                ->get()
+                ->map(fn (LeagueMatch $m) => $this->buildMatchRow($m, $account->puuid, $streamer->name, $streamer->id))
+                ->all();
+
+            $lb = $lbByStreamerId->get($streamer->id);
+
+            $result[] = [
+                'streamer_id' => $streamer->id,
+                'name' => $streamer->name,
+                'stream_url' => $streamer->stream_url,
+                'tier' => $lb['tier'] ?? null,
+                'rank' => $lb['rank'] ?? null,
+                'points' => $lb['points'] ?? null,
+                'total_lp' => $lb['total_lp'] ?? 0,
+                'wins' => $lb['wins'] ?? 0,
+                'losses' => $lb['losses'] ?? 0,
+                'win_rate' => $lb['win_rate'] ?? 0,
+                'champion_icon_url' => $lb['champion_icon_url'] ?? null,
+                'stats' => $this->buildSpotlightStats($matches),
+                'champion_stats' => $this->buildSpotlightChampionStats($matches),
+            ];
+        }
+
+        usort($result, fn ($a, $b) => $b['total_lp'] - $a['total_lp']);
+
+        return $result;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $matches
+     * @return array<string, mixed>|null
+     */
+    private function buildSpotlightStats(array $matches): ?array
+    {
+        $col = collect($matches)->filter(fn ($m) => $m['kills'] !== null && ($m['duration'] ?? 0) > 0);
+
+        if ($col->isEmpty()) {
+            return null;
+        }
+
+        $totalKills = $col->sum('kills');
+        $totalDeaths = $col->sum('deaths');
+        $totalAssists = $col->sum('assists');
+        $avgKda = $totalDeaths > 0
+            ? round(($totalKills + $totalAssists) / $totalDeaths, 2)
+            : (float) ($totalKills + $totalAssists);
+
+        $avgDamage = (int) round($col->whereNotNull('damage')->avg('damage') ?? 0);
+        $avgCsPerMin = round(
+            $col->filter(fn ($m) => $m['cs'] !== null)
+                ->avg(fn ($m) => $m['cs'] / ($m['duration'] / 60)) ?? 0,
+            1,
+        );
+        $avgDuration = (int) round($col->avg('duration') ?? 0);
+
+        $streak = 0;
+        $maxStreak = 0;
+        foreach ($col->pluck('is_win') as $win) {
+            if ($win === true) {
+                $streak++;
+                $maxStreak = max($maxStreak, $streak);
+            } else {
+                $streak = 0;
+            }
+        }
+
+        $bestGame = $col->filter(fn ($m) => $m['deaths'] !== null)
+            ->sortByDesc(fn ($m) => $m['deaths'] > 0
+                ? ($m['kills'] + $m['assists']) / $m['deaths']
+                : ($m['kills'] + $m['assists']))
+            ->first();
+
+        return [
+            'avg_kda' => $avgKda,
+            'avg_damage' => $avgDamage,
+            'avg_cs_per_min' => $avgCsPerMin,
+            'avg_duration' => $avgDuration,
+            'longest_win_streak' => $maxStreak,
+            'best_kda_game' => $bestGame ? [
+                'champion_name' => $bestGame['champion_name'],
+                'champion_icon_url' => $bestGame['champion_icon_url'],
+                'kda' => $bestGame['kda'],
+            ] : null,
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $matches
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildSpotlightChampionStats(array $matches): array
+    {
+        return collect($matches)
+            ->filter(fn ($m) => $m['champion_name'] !== '—' && $m['kills'] !== null)
+            ->groupBy('champion_name')
+            ->map(function ($group, string $name) {
+                $wins = $group->where('is_win', true)->count();
+                $total = $group->count();
+                $totalKills = $group->sum('kills');
+                $totalDeaths = $group->sum('deaths');
+                $totalAssists = $group->sum('assists');
+                $avgKda = $totalDeaths > 0
+                    ? round(($totalKills + $totalAssists) / $totalDeaths, 2)
+                    : (float) ($totalKills + $totalAssists);
+
+                return [
+                    'champion_name' => $name,
+                    'champion_icon_url' => $group->first()['champion_icon_url'],
+                    'games' => $total,
+                    'wins' => $wins,
+                    'losses' => $total - $wins,
+                    'win_rate' => $total > 0 ? (int) round($wins / $total * 100) : 0,
+                    'avg_kda' => $avgKda,
+                ];
+            })
+            ->sortByDesc('games')
+            ->take(3)
             ->values()
             ->all();
     }

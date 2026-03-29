@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Race;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,25 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'race_streams' => fn () => $this->activeRaceStreams(),
         ];
+    }
+
+    /**
+     * @return array<int, array{name: string, stream_url: string}>
+     */
+    private function activeRaceStreams(): array
+    {
+        $race = Race::active()->with('streamers')->first();
+
+        if (! $race) {
+            return [];
+        }
+
+        return $race->streamers
+            ->filter(fn ($s) => $s->stream_url)
+            ->map(fn ($s) => ['name' => $s->name, 'stream_url' => $s->stream_url])
+            ->values()
+            ->all();
     }
 }

@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useCountdown } from '@/hooks/use-countdown';
+import { tierLabel } from '@/lib/tier-utils';
 import type { LeaderboardRow, RaceData } from '@/types/race';
 
 interface Props {
@@ -13,7 +14,7 @@ export function RaceHeader({ race, isLast = false }: Props) {
     const countdown = useCountdown(race.ends_at);
 
     const totalGames = race.leaderboard.reduce((n, r) => n + r.wins + r.losses, 0);
-    const topLp = race.leaderboard[0]?.total_lp ?? null;
+    const leader = race.leaderboard[0] ?? null;
 
     return (
         <div className="relative w-full overflow-hidden" style={{ minHeight: 'min(88svh, 700px)' }}>
@@ -39,9 +40,9 @@ export function RaceHeader({ race, isLast = false }: Props) {
             {/* Bottom fade into page */}
             <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05050a] via-[#05050a]/60 to-transparent" />
 
-            {/* Corner brackets */}
-            <div className="absolute top-6 left-6 w-8 h-8 border-l border-t border-white/15" />
-            <div className="absolute top-6 right-6 w-8 h-8 border-r border-t border-white/15" />
+            {/* Corner brackets — offset below the fixed navbar (≈4rem) */}
+            <div className="absolute top-[4.5rem] left-6 w-8 h-8 border-l border-t border-white/15" />
+            <div className="absolute top-[4.5rem] right-6 w-8 h-8 border-r border-t border-white/15" />
             <div className="absolute bottom-16 left-6 w-8 h-8 border-l border-b border-white/15" />
             <div className="absolute bottom-16 right-6 w-8 h-8 border-r border-b border-white/15" />
 
@@ -79,9 +80,12 @@ export function RaceHeader({ race, isLast = false }: Props) {
                     {/* Status */}
                     <div className="flex items-center gap-4 mb-7">
                         <StatusBadge active={isActive} />
-                        {topLp !== null && (
+                        {leader?.tier && (
                             <span className="text-xs text-white/30">
-                                Leader at <span className="text-white/60 font-semibold tabular-nums">{topLp.toLocaleString()} LP</span>
+                                <span className="text-white/60 font-semibold">{leader.name}</span>
+                                {' · '}
+                                {tierLabel(leader.tier)} {leader.rank}
+                                {leader.points !== null && ` ${leader.points} LP`}
                             </span>
                         )}
                         {totalGames > 0 && (
@@ -164,9 +168,12 @@ function ParticipantChip({ row, position }: { row: LeaderboardRow; position: num
     return (
         <Link
             href={`/streamers/${row.streamer_id}`}
-            className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1.5 rounded bg-black/40 border border-white/10 hover:border-white/30 hover:bg-black/60 transition-colors backdrop-blur-sm"
+            className="flex items-center gap-1.5 flex-shrink-0 px-2 py-1.5 rounded bg-black/50 border border-white/10 hover:border-white/30 hover:bg-black/70 transition-colors backdrop-blur-sm"
         >
-            <span className="text-[10px] font-mono text-white/30">{position}</span>
+            <span className="text-[10px] font-mono text-white/25 w-3 text-center">{position}</span>
+            {row.champion_icon_url && (
+                <img src={row.champion_icon_url} alt="" className="w-5 h-5 rounded-sm flex-shrink-0" />
+            )}
             <span className="text-xs font-semibold text-white/80">{row.name}</span>
         </Link>
     );

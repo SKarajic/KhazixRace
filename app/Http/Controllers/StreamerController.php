@@ -75,6 +75,7 @@ class StreamerController extends Controller
                 'losses' => $losses,
                 'win_rate' => $winRate,
                 'champion_stats' => $championStats,
+                'stats' => $this->buildStreamerStats($recentMatches),
             ],
             'recent_matches' => $recentMatches,
             'lp_history' => $lpHistory,
@@ -106,6 +107,9 @@ class StreamerController extends Controller
             'champion_icon_url' => $iconUrl,
             'is_win' => $match->is_win,
             'kda' => $kda,
+            'kills' => $participant?->kills ?? null,
+            'deaths' => $participant?->deaths ?? null,
+            'assists' => $participant?->assists ?? null,
             'tier' => $match->tier,
             'rank' => $match->rank,
             'points' => $match->points,
@@ -218,6 +222,68 @@ class StreamerController extends Controller
             ->take(5)
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $recentMatches
+     * @return array<string, mixed>
+     */
+    private function buildStreamerStats(array $recentMatches): array
+    {
+        $matches = collect($recentMatches)->filter(fn ($m) => $m['kills'] !== null && ($m['duration'] ?? 0) > 0);
+
+        if ($matches->isEmpty()) {
+            return [];
+        }
+
+        $totalKills = $matches->sum('kills');
+        $totalDeaths = $matches->sum('deaths');
+        $totalAssists = $matches->sum('assists');
+        $avgKda = $totalDeaths > 0
+            ? round(($totalKills + $totalAssists) / $totalDeaths, 2)
+            : (float) ($totalKills + $totalAssists);
+
+        $avgDamage = (int) round($matches->whereNotNull('damage')->avg('damage') ?? 0);
+
+        $avgCsPerMin = round(
+            $matches->filter(fn ($m) => $m['cs'] !== null)
+                ->avg(fn ($m) => $m['cs'] / ($m['duration'] / 60)) ?? 0,
+            1
+        );
+
+        $avgDuration = (int) round($matches->avg('duration') ?? 0);
+
+        // Longest win streak from most recent matches first
+        $streak = 0;
+        $maxStreak = 0;
+        foreach ($matches->pluck('is_win') as $win) {
+            if ($win === true) {
+                $streak++;
+                $maxStreak = max($maxStreak, $streak);
+            } else {
+                $streak = 0;
+            }
+        }
+
+        $bestGame = $matches
+            ->filter(fn ($m) => $m['deaths'] !== null)
+            ->sortByDesc(fn ($m) => $m['deaths'] > 0
+                ? ($m['kills'] + $m['assists']) / $m['deaths']
+                : ($m['kills'] + $m['assists']))
+            ->first();
+
+        return [
+            'avg_kda' => $avgKda,
+            'avg_damage' => $avgDamage,
+            'avg_cs_per_min' => $avgCsPerMin,
+            'avg_duration' => $avgDuration,
+            'longest_win_streak' => $maxStreak,
+            'best_kda_game' => $bestGame ? [
+                'champion_name' => $bestGame['champion_name'],
+                'champion_icon_url' => $bestGame['champion_icon_url'],
+                'kda' => $bestGame['kda'],
+            ] : null,
+        ];
     }
 
     private function computeTotalLp(?string $tier, ?string $division, ?int $points): int

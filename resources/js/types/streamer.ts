@@ -8,6 +8,15 @@ export type ChampionStat = {
     avg_kda: number;
 };
 
+export type StreamerStats = {
+    avg_kda: number;
+    avg_damage: number;
+    avg_cs_per_min: number;
+    avg_duration: number;
+    longest_win_streak: number;
+    best_kda_game: { champion_name: string; champion_icon_url: string | null; kda: string } | null;
+};
+
 export type StreamerProfile = {
     id: number;
     name: string;
@@ -22,4 +31,5 @@ export type StreamerProfile = {
     losses: number;
     win_rate: number;
     champion_stats: ChampionStat[];
+    stats: StreamerStats | null;
 };

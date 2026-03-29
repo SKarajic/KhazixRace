@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { LpHistoryChart } from '@/components/streamer/lp-history-chart';
 import { MatchList } from '@/components/streamer/match-list';
+import { StreamerStatCards } from '@/components/streamer/stat-cards';
 import { StreamerHero } from '@/components/streamer/streamer-hero';
 import { TwitchEmbed } from '@/components/twitch-embed';
 import PublicLayout from '@/layouts/public-layout';
@@ -23,6 +24,7 @@ export default function Streamer({ streamer, recent_matches, lp_history }: Props
             <div>
                 <StreamerHero streamer={streamer} championIconUrl={championIconUrl} />
                 <div className="mx-auto max-w-5xl px-4 py-10 space-y-10">
+                    {streamer.stats && <StreamerStatCards stats={streamer.stats} />}
                     {streamer.stream_url && <TwitchEmbed url={streamer.stream_url} />}
                     {streamer.champion_stats.length > 0 && (
                         <ChampionStats stats={streamer.champion_stats} />

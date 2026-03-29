@@ -1,15 +1,18 @@
 import { Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import moment from 'moment-timezone';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Leaderboard } from '@/components/race/leaderboard';
 import { LpChart } from '@/components/race/lp-chart';
 import { MatchFeed } from '@/components/race/match-feed';
 import { RaceHeader } from '@/components/race/race-header';
+import { RaceStatCards } from '@/components/race/stat-cards';
+import { StreamerSpotlight } from '@/components/race/streamer-spotlight';
 import { TwitchEmbed } from '@/components/twitch-embed';
+import { useStream } from '@/contexts/stream-context';
 import { useCountdown } from '@/hooks/use-countdown';
 import PublicLayout from '@/layouts/public-layout';
-import type { LeaderboardRow, RaceData } from '@/types/race';
+import type { RaceData } from '@/types/race';
 
 interface UpcomingStreamer {
     id: number;
@@ -49,17 +52,14 @@ export default function Home({ race, upcoming, last }: Props) {
 }
 
 function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }) {
+    const { activeUrl, setActiveUrl } = useStream();
     const streamers = useMemo(
         () => race.leaderboard.filter((r) => !!r.stream_url),
         [race.leaderboard],
     );
-    const [activeStream, setActiveStream] = useState<LeaderboardRow | null>(() => {
-        if (race.stream_url) return null; // handled separately
-        if (streamers.length === 0) return null;
-        return streamers[Math.floor(Math.random() * streamers.length)];
-    });
 
-    const embedUrl = race.stream_url ?? activeStream?.stream_url ?? null;
+    // The embed shows: the race's dedicated stream, or whatever is active in the context
+    const embedUrl = race.stream_url ?? activeUrl ?? null;
 
     return (
         <div>
@@ -71,15 +71,15 @@ function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }
 
                 {embedUrl && (
                     <div className="space-y-0">
-                        {/* Tabs — only shown when there is no dedicated race stream */}
+                        {/* Tabs — only when there is no dedicated race stream */}
                         {!race.stream_url && streamers.length > 1 && (
                             <div className="flex gap-1 mb-2 flex-wrap">
                                 {streamers.map((s) => (
                                     <button
                                         key={s.streamer_id}
-                                        onClick={() => setActiveStream(s)}
+                                        onClick={() => s.stream_url && setActiveUrl(s.stream_url)}
                                         className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                                            activeStream?.streamer_id === s.streamer_id
+                                            activeUrl === s.stream_url
                                                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                                                 : 'bg-white/5 text-[#4a4a60] border border-white/5 hover:text-white hover:border-white/20'
                                         }`}
@@ -92,6 +92,15 @@ function RaceView({ race, isLast = false }: { race: RaceData; isLast?: boolean }
                         <TwitchEmbed url={embedUrl} />
                     </div>
                 )}
+
+                {race.stats && (
+                    <RaceStatCards stats={race.stats} participantCount={race.leaderboard.length} />
+                )}
+
+                {race.streamers_spotlight.length > 0 && (
+                    <StreamerSpotlight streamers={race.streamers_spotlight} />
+                )}
+
                 <LpChart series={race.lp_series} />
                 <MatchFeed matches={race.matches} />
             </div>
